@@ -1,0 +1,316 @@
+<textarea>
+  <div  v-if="state_load">
+    <skin_header :title="title">
+      <template slot="footer">
+        <div style="padding:5px">
+          <Steps :current="current" >
+            <Step v-for="(step,x) of steps" :title="step.title" :content="step.about" v-bind:key="x">
+            </Step>
+          </Steps>
+        </div>
+      </template>
+      <template slot="opes">
+        <ButtonGroup>
+          <Button @click="history.go(-1)">返回</Button>
+          <template v-if="step_current.nexts">
+          <Button v-for="item of step_current.nexts" @click="onNext(item)" >{{item.title}}</Button>
+          </template>
+        </ButtonGroup>
+      </template>
+    </skin_header>
+
+    <skin_card title="" :hideHeader="false">
+      <template slot="body">
+        <Tabs v-if="step_current.nexts">
+          <TabPane v-for="(nav,x) of step_current.opes" :key="x" :label="nav.title" :icon="(undefined==stepStatus || undefined==stepStatus[nav.key] ||0==stepStatus[nav.key])?'ios-close':'ios-checkmark'">
+          </TabPane>
+        </Tabs>
+        <component v-bind:is="url_current" @data-change="onDataChange" :auth="auth_current" :state="state_current"
+          :eid="eid" :entry="entry"></component>
+      </template>
+    </skin_card>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['title', 'flowName', 'status', 'stepStatus', 'scheme', 'entry', 'eid'],
+    data() {
+      return {
+        steps: [],//所有节点
+        current: -1,//当前节点下标
+        step_current: {},
+        opes: [],//
+        state_load: false,
+        auths_step: {},
+        auths_ope: {},
+        auths_next: {},
+        url_current: '',
+        auth_current: '',
+        state_current: ''
+      }
+    },
+    computed: {
+    },
+    created() {
+    },
+    methods: {
+      onNext(item) {
+        if (undefined == item.server || '' == item.server.trim()) {
+          this.$Message.error("动作未配置后端接口");
+          return;
+        }
+        if (true === item.check && false === this.canNext(item.check)) {
+          return;
+        }
+
+        this.$Modal.confirm({
+          title: '流程提交',
+          content: '<p>确定要提交' + item.title + '</p>',
+          onOk: () => {
+            this.doNext(item);
+          },
+          onCancel: () => {
+          }
+        });
+      },
+      canNext(needCheck) {
+        if (undefined == this.status) {
+          this.$Message.error("当前状态不存在");
+          return false;
+        }
+        if (undefined == this.stepStatus) {
+          this.$Message.error("当前流程状态为空");
+          return false;
+        }
+        var step = this.steps[this.current];
+        if (undefined == step) {
+          this.$Message.error("未知状态");
+          return false;
+        }
+
+        if (true === needCheck) {
+          var opes = step.opes;
+          if (undefined == opes || 0 == opes.length) {
+            // this.$Message.error("该节点未配置流程操作");
+            opes = [];
+          }
+          for (var ope of opes) {
+            var key = ope.key;
+            if (undefined == key || '' == key) {
+              this.$Message.error("操作【" + ope.title + "】未配置key");
+              return false;
+            }
+            if (undefined == this.stepStatus[key] || 0 == this.stepStatus[key]) {
+              this.$Message.error("未完成【" + ope.title + "】");
+              return false;
+            }
+          }
+        }
+      },
+      doNext(config) {
+        instance_axios({
+          method: 'post',
+          // url: 'api/manage/examplace-report/next.do',
+          url: config.server,
+          data: {
+            id: this.eid,
+            config: config
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success("成功执行");
+            this.$emit("data-change",{});
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      go(ope) {
+        if (undefined == ope || undefined == ope.url) {
+          return;
+        }
+        var auth = '';
+        var step = this.steps[this.current];
+        if (step.name == this.status) {
+          auth = this.auths_ope[ope.key];
+        } else {
+          auth = '1';
+        }
+        this.auth_current = auth;
+        var state = true;
+        if (undefined == this.stepStatus || undefined == this.stepStatus[ope.key] || 0 == this.stepStatus[ope.key]) {
+          state = false;
+        }
+        this.url_current = ope.url;
+        this.state_current = state;
+        // this.$emit('data-change', { auth: auth, url: ope.url, state: state });
+      },
+      forScheme(root) {
+        var roles = root.schemes;
+        if (undefined != roles) {
+          var config = undefined;
+          for (var role of roles) {
+            if (undefined != this.scheme && role.name == this.scheme) {
+              config = role;
+              break;
+            }
+          }
+          if (undefined != config) {
+            var content = config.steps;
+            if (undefined != content && '' != content) {
+              this.auths_step = JSON.parse(content);
+            }
+            content = config.opes;
+            if (undefined != content && '' != content) {
+              this.auths_ope = JSON.parse(content);
+            }
+            content = config.nexts;
+            if (undefined != content && '' != content) {
+              this.auths_next = JSON.parse(content);
+            }
+          }
+          this.auths_step = Object.assign({}, this.auths_step);
+          this.auths_ope = Object.assign({}, this.auths_ope);
+          this.auths_next = Object.assign({}, this.auths_next);
+        }
+      },
+      forStep() {
+        // 获取当前节点
+        this.step_current = {};
+        this.current = -1;
+        var step = {};
+        for (var x = 0; x < this.steps.length; x++) {
+          if (this.steps[x].name === this.status) {
+            this.current = x;
+            step = this.steps[x];
+            break;
+          }
+        }
+        if (-1 == this.current) {
+          this.step_current = Object.assign({},this.step_current);
+          return;
+        }
+
+        var current_ope = undefined;
+        var current_step = undefined;
+        var index = 0;
+        if (undefined == step.name || null == step.name) {
+          this.$Message.error("节点【" + step.title + "】未配置name");
+          this.step_current = Object.assign({},this.step_current);
+          return;
+        }
+        if (undefined != this.scheme && '3' === this.auths_step[step.name]) {
+          return;
+        }
+
+        var content = step.content;
+        var opes = [];
+        var opes_need = [];
+        if (undefined != content && '' != content.trim()) {
+          opes = JSON.parse(content);
+        }
+        for (var ope of opes) {
+          var key = ope.key;
+          if (undefined == ope.key || null == ope.key) {
+            this.$Message.error("操作【" + ope.title + "】未配置key");
+            return;
+          }
+          if (undefined != this.scheme && ('1' === this.auths_ope[key] || '2' === this.auths_ope[key])) {
+            opes_need.push(ope);
+          }
+        }
+        step.opes = opes_need;
+
+        var nexts = [];
+        var nexts_need = [];
+        content = step.nexts;
+
+        if (undefined != content && '' != content.trim()) {
+          nexts = JSON.parse(content);
+        }
+        for (var next of nexts) {
+          if (undefined != this.scheme && ('1' === this.auths_next[next.key] || '2' === this.auths_next[next.key])) {
+            nexts_need.push(next);
+          }
+        }
+        step.nexts = nexts_need;
+        this.state_load = true;
+        this.step_current = step;
+        this.step_current = Object.assign({},this.step_current);
+        this.onStatusChange();
+
+      },
+      onRefersh() {
+        if (undefined == this.status) {
+          this.$Message.error("当前状态不存在");
+          return false;
+        }
+        if (undefined == this.stepStatus) {
+          this.$Message.error("当前流程状态为空");
+          return false;
+        }
+        design_axios({
+          method: 'post',
+          url: 'api/design/flow/take.do',
+          data: {
+            flowName: this.flowName,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.forScheme(root);
+            this.steps = root.steps;
+            this.forStep(root);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onStatusChange() {
+        var current_ope = undefined;
+        for (var ope of this.step_current.opes) {
+          var key = ope.key;
+          if (undefined == this.stepStatus[key] || 0 === this.stepStatus[key]) {
+            current_ope = ope;
+          }
+        }
+
+        if (undefined == current_ope) {
+          current_ope = this.step_current.opes[0];
+        }
+        this.go(current_ope);
+      },
+      onDataChange(){
+        this.$emit("data-change",{});
+      }
+    },
+    watch: {
+      flowName: {
+        handler(new_val, oldName) {
+          if (undefined != this.flowName && '' != this.flowName) {
+            this.onRefersh();
+          } else {
+            this.steps = [];
+          }
+        },
+        immediate: true
+      },
+      status: {
+        handler(new_val, oldName) {
+          if (undefined != this.status) {
+            this.forStep();
+          } else {
+          }
+        },
+        immediate: false
+      }
+    },
+  });
+</script>

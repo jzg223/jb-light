@@ -1,0 +1,150 @@
+<textarea>
+  <skin_card title="应用权限管理">
+    <template slot="opes">
+      <a class="btn btn-success btn-sm" @click="$refs.add.onAdd()">新增</a>
+    </template>
+    <template slot="body">
+      <components_sso_authInfo ref="add" :app="app_current" @data-change="onRefersh"></components_sso_authInfo>
+      <components_app_tabs @app-change="onAppChange"></components_app_tabs>
+      <Table row-key="id" :columns="columns" :data="datas" border>
+        <template slot-scope="{ row, index }" slot="action">
+          <Button v-if="row.code" type="primary" size="small" style="margin-right: 5px" @click="onEdit(row)">修改</Button>
+        </template>
+      </Table>
+    </template>
+  </skin_card>
+</textarea>
+<script>
+
+  Rap.define(['/components/app/tabs','/components/sso/authInfo'], {
+    props: {
+    },
+    data: function () {
+      return {
+        app_current: {},
+        columns: [
+          {
+            title: '编码',
+            key: 'code',
+            tree: true
+          },
+          {
+            title: '标题',
+            key: 'mean'
+          },
+          {
+            title: '描述',
+            key: 'remark'
+          },
+          {
+            title: '操作',
+            slot: 'action'
+          }
+        ],
+        datas: [
+          {
+            id: '100',
+            name: 'John Brown',
+            age: 18,
+            address: 'New York No. 1 Lake Park'
+          },
+          {
+            id: '101',
+            name: 'Jim Green',
+            age: 24,
+            address: 'London No. 1 Lake Park',
+            children: [
+              {
+                id: '10100',
+                name: 'John Brown',
+                age: 18,
+                address: 'New York No. 1 Lake Park'
+              },
+              {
+                id: '10101',
+                name: 'Joe Blackn',
+                age: 30,
+                address: 'Sydney No. 1 Lake Park'
+              },
+              {
+                id: '10102',
+                name: 'Jon Snow',
+                age: 26,
+                address: 'Ottawa No. 2 Lake Park',
+                children: [
+                  {
+                    id: '1010200',
+                    name: 'Jim Green',
+                    age: 24,
+                    address: 'New York No. 1 Lake Park'
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            id: '102',
+            name: 'Joe Black',
+            age: 30,
+            address: 'Sydney No. 1 Lake Park'
+          },
+          {
+            id: '103',
+            name: 'Jon Snow',
+            age: 26,
+            address: 'Ottawa No. 2 Lake Park'
+          }
+        ]
+      }
+    },
+    created: function () {
+    },
+    methods: {
+      onAppChange(app) {
+        this.app_current = app;
+        this.onRefersh();
+      },
+      onEdit(row){
+        this.$refs.add.onShow(row.id);
+      },
+      onRefersh() {
+        instance_axios({
+          method: 'post',
+          url: 'api/sso/auth/all.do',
+          data: {
+            app: this.app_current.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.datas = [];
+            var datas = root.datas;
+            var groups = root.groups;
+            var current = 0;
+            for(var group of groups){
+              var node = {id:current+'',mean:group.groups};
+              var childs = [];
+              for(var item of datas){
+                if(item.groups == group.groups){
+                  childs.push(item);
+                }
+              }
+              node.children = childs;
+              this.datas.push(node);
+              current++;
+            }
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>

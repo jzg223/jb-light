@@ -1,0 +1,195 @@
+<textarea>
+  <span>
+    <Select v-if="false==isMul" clearable  filterable v-model="value" label-in-value :disabled="isReadonly(cell)" 
+    :placeholder="cell.title" @on-change="onChange" transfer="true">
+      <Option v-for="(item,x) in options" :value="item.value" v-bind:key="x">{{ item.label }}</Option>
+    </Select>
+    <Select v-if="true==isMul" multiple clearable  filterable v-model="values" label-in-value :disabled="isReadonly(cell)" 
+    :placeholder="cell.title" @on-change="onChange1" transfer="true">
+      <Option v-for="(item,x) in options" :value="item.value" v-bind:key="x">{{ item.label }}</Option>
+    </Select>
+  </span>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source', 'state'],
+    data() {
+      return {
+        value: '',
+        values: [],
+        options: [],
+        isMul: false,//是否多选
+      }
+    },
+    computed: {
+    },
+    mounted() {
+    },
+    methods: {
+      // onDefault(){
+      //   if(undefined==this.source && this.options.length>0){
+      //     this.value = this.options[0].value;
+      //     return;
+      //   }
+      // },
+      changeCallBack(val) {
+        // (new Function('',val))();
+        this.$emit('change-call-back',val);
+      },
+
+      isReadonly(cell) {
+        var readonly = cell.readonly;
+        if ('1' == '' + readonly) {
+          //不为空只读
+          if (1 == this.state) {
+            return true;
+          }
+        }
+
+        if ('2' == '' + readonly) {
+          //不可编辑
+          return true;
+        }
+      },
+      onInit() {
+
+        var content = this.cell.select_options;
+        if (undefined != content && '' != content.trim()) {
+          var rows = content.split('\n');
+          for (var row of rows) {
+            var strs = row.split("|");
+            if (undefined != strs && strs.length == 2) {
+              this.options.push({
+                value: strs[0],
+                label: strs[1]
+              });
+            }
+          }
+          return;
+        }
+        var field_name = this.cell.select_nameField;
+        var field_title = this.cell.select_titleField;
+        if (undefined != this.cell.select_url && '' != this.cell.select_url) {
+          instance_axios({
+            method: 'post',
+            url: this.cell.select_url,
+            data: {
+              select: this.cell.select_sql,
+            }
+          }).then(res => {
+            let root = res.data;
+            this.options = [];
+            if (root.code === 200) {
+              var datas = root.datas;
+              for (var data of datas) {
+                var json = {
+                  value: data[field_name] + '',
+                  label: data[field_title]
+                };
+                this.options.push(json);
+              }
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        } else if (undefined != this.cell.select_sql && '' != this.cell.select_sql) {
+          instance_axios({
+            method: 'post',
+            url: 'api/design/form/select.do',
+            data: {
+              select: this.cell.select_sql,
+            }
+          }).then(res => {
+            let root = res.data;
+            this.options = [];
+            if (root.code === 200) {
+              var datas = root.datas;
+              for (var data of datas) {
+                var json = {
+                  value: data[field_name] + '',
+                  label: data[field_title]
+                };
+                this.options.push(json);
+              }
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        } else if (undefined != this.cell.dict && '' != this.cell.dict && undefined != this.$store) {
+          var items = this.$store.state.dicts[this.cell.dict];
+          if (undefined != items) {
+            for (var data of items) {
+              var json = {
+                value: data[field_name] + '',
+                label: data[field_title]
+              };
+              this.options.push(json);
+            }
+          }
+        }
+      },
+      onChange(json) {
+
+        if('changeCallBack' in this.cell) {
+          this.changeCallBack(this.cell.changeCallBack);
+        }
+  
+        if(undefined==this.value){
+          this.value = '';
+        }
+        this.$emit("change", { 'field': this.cell.name, 'value': this.value });
+        if (undefined != this.cell.titleField && '' != this.cell.titleField && undefined != json) {
+          this.$emit("change", { 'field': this.cell.titleField, 'value': json.label });
+        }
+
+        // if(undefined != json){
+        //   this.$emit("echange", { 'field': this.cell.name, 'value': json.label })
+        // }
+
+      },
+      onChange1() {
+        this.$emit("change", { 'field': this.cell.name, 'value': JSON.stringify(this.values) + " " });
+      }
+    },
+    watch: {
+      cell: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            if ('1' == this.cell.isMul + '') {
+              this.isMul = true;
+            } else {
+              this.isMul = false;
+            }
+            this.onInit();
+          }
+        },
+        immediate: true
+      },
+      source: {
+        handler(new_val) {
+          if(undefined==new_val){
+            this.value = '';
+            this.values = [];
+            return;
+          }
+          this.value = new_val;
+          new_val = ''+new_val;
+          if (undefined != new_val && new_val.indexOf('[') == 0) {
+            this.values = JSON.parse(new_val);
+            this.values = Object.assign([], this.values);
+          } else {
+            this.values = [];
+            this.values = Object.assign([], this.values);
+          }
+        },
+        immediate: true
+      }
+    }
+  });
+</script>

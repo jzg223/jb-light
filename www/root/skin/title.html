@@ -1,0 +1,32 @@
+<template>
+    <div class="d-flex align-items-center" v-if="undefined!=title || undefined!=$refs.opes">
+        <fieldset class="layui-elem-field layui-field-title flex">
+            <legend>{{title}}</legend>
+        </fieldset>
+        <blockquote class="layui-elem-quote" v-if="$slots.opes">
+            <slot name="opes"></slot>
+        </blockquote>
+    </div>
+</template>
+<script>
+    Rap.define([], {
+        props: ['title'],
+        data: function () {
+            return {
+            }
+        },
+        created: function () {
+        },
+        methods: {
+        },
+        init: function (query, search) {
+        },
+        watch: {
+        }
+    })
+</script>
+<style>
+    .flex {
+        flex: 1 1 0% !important;
+    }
+</style>

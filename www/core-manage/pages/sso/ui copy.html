@@ -1,0 +1,240 @@
+<textarea>
+  <skin_two39>
+    <template slot="top">
+      <skin_panel title="界面管理">
+        <template slot="body">
+          <components_app_tabs @app-change="onAppChange"></components_app_tabs>
+        </template>
+      </skin_panel>
+    </template>
+    <template slot="left">
+      <skin_panel title="模块">
+        <template slot="opes">
+          <Button type="primary" @click="$refs.module.onAdd()" icon="ios-add"></Button>
+                      <Button v-if="undefined!=selected_module&&undefined!=selected_module.key" type="primary" icon="ios-build"
+                        class="extra" @click="$refs.module.onShow(selected_module.key)"></Button>
+        </template>
+        <template slot="body">
+          <components_sso_moduleInfo ref="module" :app="app_current"
+            @data-change="$refs.tree.onRefersh()"></components_sso_moduleInfo>
+          <components_sso_functionInfo ref="function" :app="app_current"
+            @data-change="onRefersh"></components_sso_functionInfo>
+          <components_sso_moduleTree :app="app_current" ref="tree" @module-change="onModuleChange"></components_sso_moduleTree>
+        </template>
+      </skin_panel>
+    </template>
+    <template slot="right">
+      <skin_panel :title="(undefined==selected_module)?'未选择模块':'已选择模块：'+selected_module.title">
+        <template slot="opes">
+          <Button type="info" ghost class="extra"
+          @click="$refs.function.onAdd((selected_module)?selected_module.key:0)">添加</Button>
+        </template>
+        <template slot="body">
+          <Form :model="info_search" inline>
+            <FormItem prop="uf_title">
+              <Input type="text" v-model="info_search.uf_title" placeholder="请输入功能名称" />
+            </FormItem>
+            <FormItem prop="uf_path">
+              <Input type="text" v-model="info_search.uf_path" placeholder="请输入功能资源" />
+            </FormItem>
+            <FormItem>
+              <Button type="primary" @click="onRefersh">搜索</Button>
+              <Button type="default" @click="resetSearch" style="margin-left: 20px">重置</Button>
+            </FormItem>
+          </Form>
+
+          <Table border ref="functionTable" highlight-row :columns="columns" :data="datas"
+            @on-current-change="functionSelectedChange" @on-selection-change="onSelectionChange">
+            <template slot-scope="{ row, index }" slot="action">
+              <Button type="primary" size="small" style="margin-right: 5px" @click="onFunctionEdit(row,'edit')">修改</Button>
+            </template>
+          </Table>
+
+          <Row>
+            <Col span="12" style="padding-top:10px;">
+            <Poptip transfer confirm title="确定删除所选数据?" @on-ok="onBatDelete">
+              <Button type="primary" size="small" style="margin-right: 5px">删除</Button>
+            </Poptip>
+
+            </Col>
+            <Col span="12">
+            <div style="float: right;">
+              <Page style="float: right;" :total="functionPage.total" :current="functionPage.current"
+                :page-size="functionPage.size" show-total show-elevator show-sizer style="margin-top: 20px;"
+                @on-change="pageChange" @on-page-size-change="pageSizeChange" />
+            </div>
+            </Col>
+          </Row>
+        </template>
+      </skin_panel>
+    </template>
+  </skin_two39>
+</textarea>
+<script>
+  Rap.define(['/components/app/tabs','/components/sso/moduleInfo','/components/sso/functionInfo','/components/sso/moduleTree'], {
+    props: {
+    },
+    data: function () {
+      return {
+        datas: [],
+        columns: [
+          {
+            'title': '#',
+            type: 'selection'
+          },
+          {
+            'title': '名称',
+            'key': 'name',
+            'sortable': true
+          }, {
+            'title': '资源',
+            'key': 'path',
+            'sortable': true
+          }, {
+            'title': '路径',
+            'key': 'fullpath',
+            'sortable': true
+          }, {
+            'title': '功能模板',
+            'key': 'templatename',
+            'sortable': true
+          }, {
+            'title': '排序',
+            'key': 'orderno',
+            'sortable': true
+          }, {
+            'title': '操作',
+            'slot': 'action'
+          }
+        ],
+        functionPage: {
+          total: 0,
+          size: 10,
+          current: 1
+        },
+        selected_module: undefined,//已选中模块
+        selectedDatas: [],
+        app_current: {},
+        info_search: {
+          uf_title: '',
+          uf_path: ''
+        },
+      }
+    },
+    created: function () {
+    },
+    methods: {
+      onFunctionEdit(row){
+        this.$refs.function.onShow(row.id);
+      },
+      onSelectionChange(rows) {
+        this.selectedDatas = rows;
+      },
+      onBatDelete() {
+        var ids = [];
+        for (var data of this.selectedDatas) {
+          ids.push(data.id);
+        }
+        instance_axios({
+          method: 'post',
+          url: 'api/sso/uifunction/batdelete.do',
+          data: {
+            ids: ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('批量删除成功');
+            this.onRefersh();
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onAdd() {
+
+      },
+      onAppChange(app) {
+        this.app_current = app;
+      },
+      onModuleChange(node) {
+        this.selected_module = node;
+        this.functionPage = {
+          total: 0,
+          size: 10,
+          current: 1
+        };
+        this.onRefersh();
+      },
+      resetPage() {
+        this.functionPage = {
+          total: 0,
+          size: 10,
+          current: 1
+        }
+      },
+      functionSelectedChange(currentRow) {
+        this.functionSelected = currentRow
+      },
+      selectChangeHandle(data, node) {
+        this.functionTitle = node.title
+        this.moduleSelected = node
+        this.ionRefersh()
+      },
+      functionSearch() {
+        let formSearch = this.formSearch
+        this.resetPage()
+        this.ionRefersh(formSearch)
+      },
+      resetSearch() {
+
+        this.formSearch = {
+          uf_title: '',
+          uf_path: ''
+        }
+        this.resetPage()
+        this.onRefersh()
+
+      },
+      onRefersh() {
+        let functionPage = this.functionPage;
+        instance_axios({
+          method: 'post',
+          url: 'api/sso/uifunction/list.do',
+          data: {
+            pageNum: this.functionPage.current,
+            pageSize: this.functionPage.size,
+            mid: (this.selected_module) ? this.selected_module.key : 0,
+            app: this.app_current.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.datas = root.datas
+            this.functionPage.total = root.total
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      pageChange(current) {
+        this.functionPage.current = current
+        this.onRefersh()
+      },
+      pageSizeChange(pageSize) {
+        this.functionPage.size = pageSize
+        this.ionRefersh()
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>

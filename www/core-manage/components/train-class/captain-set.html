@@ -1,0 +1,65 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">设置队长</div>
+    <div class="panel-body">
+      <components_design_form v-if="info.id" ref="form" name="train-caption" 
+        :rules="rules" :source="info">
+        <FormItem slot="submit">
+          <Button type="primary"  v-if="'view'!==auth"  @click="doSubmit('info')">提交</Button>
+        </FormItem>
+      </components_design_form>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/design/form'], {
+    props: ['id', 'classInfo', 'auth'],
+    data: function () {
+      return {
+        info: {
+        },
+        rules: {},
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      doSubmit(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-captain.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onRefersh() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, this.classInfo);
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

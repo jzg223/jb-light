@@ -1,0 +1,283 @@
+<textarea>
+  <Modal v-model="state_show" width="800" :title="0==id?'创建教官':'编辑教官'">
+
+    <Form ref="info" :model="info" :rules="rules" :label-width="180">
+      <Row>
+        <Col span="12">
+          <FormItem label="名称" prop="name">
+            <Input type="text" v-model="info.name" placeholder="" />
+          </FormItem>
+        </Col>
+        <Col span="12">
+          <FormItem label="身份证" prop="idcard">
+            <Input type="text" v-model="info.idcard" placeholder="" />
+          </FormItem>
+        </Col>
+      </Row>
+    
+
+      <Row>
+        <Col span="12">
+          <FormItem label="出生年月" prop="birthMonth">
+            <DatePicker type="month" :value="info.birthMonth?info.birthMonth:''" @on-change="onBirthChange" ></DatePicker>
+          </FormItem>
+        </Col>
+        <Col span="12">
+          <FormItem label="性别" prop="sex">
+            <RadioGroup v-model="info.sex">
+              <Radio v-for="item of sexs" v-bind:key="item.dd_code" :label="item.dd_code">{{item.dd_name}}</Radio>
+            </RadioGroup>
+          </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span="12">
+          <FormItem label="民族" prop="nationality">
+            <Select v-model="info.nationality"  clearable >
+              <Option v-for="item in nationalitys" :value="item.dd_code+''" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+        <Col span="12">
+          <FormItem label="学历" prop="education">
+            <Select v-model="info.education"  clearable >
+              <Option v-for="item in educations" :value="item.dd_code+''" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span="12">
+          <FormItem label="授课警种" prop="kind">
+            <Select v-model="info.kind"  clearable >
+              <Option v-for="item in kinds" :value="item.dd_code+''" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span="12">
+          <FormItem label="教官类别" prop="teacherKind">
+            <Select v-model="info.teacherKind"  clearable >
+              <Option v-for="item in teacherKinds" :value="item.dd_code+''" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+        <Col span="12">
+          <FormItem label="教官专业类别" prop="teacherJobType">
+            <Select v-model="info.teacherJobType"  clearable >
+              <Option v-for="item in teacherJobTypes" :value="item.dd_code+''" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span="12">
+          <FormItem label="警号" prop="copNumber">
+            <Input type="text" v-model="info.copNumber" placeholder="" />
+          </FormItem>
+        </Col>
+        <Col span="12">
+          <FormItem label="警衔" prop="policeRank">
+            <Select v-model="info.policeRank"  clearable >
+              <Option v-for="item in policeRanks" :value="item.dd_code+''" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span="12">
+          <FormItem label="所在部门" prop="orgName">
+            <Input type="text" v-model="info.orgName" placeholder="" />
+          </FormItem>
+        </Col>
+        <Col span="12">
+          <FormItem label="职务" prop="position">
+            <Input type="text" v-model="info.position" placeholder="" />
+          </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span="24">
+          <FormItem label="任教科目" prop="course">
+            <Input type="text" v-model="info.course" placeholder="" />
+          </FormItem>
+        </Col>
+      </Row>
+      <Row>
+        <Col span="24">
+          <FormItem label="特长" prop="skill">
+            <Input type="text" v-model="info.skill" placeholder="" />
+          </FormItem>
+        </Col>
+      </Row>
+      <FormItem label="缩略图" prop="thumb">
+          <components_img-upload ref="img" :source="info.thumb"></components_img-upload>
+      </FormItem>
+      <FormItem label="简介" prop="description">
+        <components_edit ref="about" :source="info.description"></components_edit>
+      </FormItem>
+    </Form> 
+    <div slot="footer">
+      <Button type="primary" @click="doSubmit">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+    Rap.define(['/components/edit', '/components/img-upload', '/sys/org/select'], {
+        data: function () {
+            return {
+                // name1: 1,
+                state_show: false,
+                info: {},
+                rules: {},
+                id: 0,
+                kinds: [],
+                teacherKinds: [],
+                hireLevels: [],
+                sexs: [],
+                yesornos: [],
+                orgId_source: 0,
+                teacherJobTypes: [],
+                policeRanks: [],
+                nationalitys: [],
+                educations: [],
+            };
+        },
+        created: function () {
+            this.onInit();
+        },
+        mounted() {},
+        methods: {
+            onOrgSelect(event) {
+                this.info.orgId = event;
+            },
+            onHireDateChange(date, type) {
+                this.info.hireDate = new Date(date).getTime() / 1000 + '';
+            },
+            onBirthChange(date, type) {
+                this.info.birthMonth = date;
+                console.log(date + ' -- ' + type);
+                // this.info.startDate = new Date(date).getTime() / 1000+'';
+            },
+            doSubmit(name) {
+                var info = Object.assign({}, this.info);
+                if(this.kinds[info.kind * 1 - 1] != undefined){
+                  info.kindName = this.kinds[info.kind * 1 - 1].dd_name;
+                }
+                if(this.sexs[info.sex * 1 - 1] != undefined){
+                  info.sexName = this.sexs[info.sex * 1 - 1].dd_name;
+                }
+                if(this.teacherJobTypes[info.teacherJobType * 1 - 1] != undefined){
+                  info.teacherJobTypeName = this.teacherJobTypes[info.teacherJobType * 1 - 1].dd_name;
+                }
+                if(this.policeRanks[info.policeRank * 1 - 1] != undefined){
+                  info.policeRankName = this.policeRanks[info.policeRank * 1 - 1].dd_name;
+                }
+                if(this.nationalitys[info.nationality * 1 - 1] != undefined){
+                  info.nationalityName = this.nationalitys[info.nationality * 1 - 1].dd_name;
+                }
+                if(this.educations[info.education * 1 - 1] != undefined){
+                  info.educationName = this.educations[info.education * 1 - 1].dd_name;
+                }
+                if(this.teacherKinds[info.teacherKind * 1 - 1] != undefined){
+                  info.teacherKindName = this.teacherKinds[info.teacherKind * 1 - 1].dd_name;
+                }
+
+                info.thumb = this.$refs.img.take();
+                info.description = this.$refs.about.take();
+                delete info._index;
+                delete info._rowKey;
+                delete info.id;
+                if (this.id > 0) {
+                    instance_axios({
+                        method: 'post',
+                        url: 'api/manage/teacher/update.do',
+                        data: {
+                            info: info,
+                            // uid: takeUid(),
+                            id: this.id,
+                        },
+                    }).then(res => {
+                        let root = res.data;
+                        if (root.code === 200) {
+                            this.$Message.success('成功更新');
+                            this.$root.$emit('teacher-change', {});
+                            setTimeout(() => {
+                                this.state_show = false;
+                            }, 1000);
+                            // this.getRoleListDataHandle()
+                        } else {
+                            this.$Message.error(root.message);
+                        }
+                    });
+                    return;
+                }
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/teacher/create.do',
+                    data: {
+                        info: info,
+                        // uid: takeUid()
+                    },
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success('成功创建');
+                        this.$root.$emit('teacher-change', {});
+                        setTimeout(() => {
+                            this.state_show = false;
+                        }, 1000);
+                        // this.getRoleListDataHandle()
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                });
+            },
+            onShow(item) {
+                this.state_show = true;
+                if (undefined != item) {
+                    this.info = Object.assign({}, item);
+                    console.log(this.info);
+                    this.id = item.id;
+                    this.orgId_source = this.info.orgId;
+                } else {
+                    this.info = Object.assign({}, {});
+                    this.id = 0;
+                }
+            },
+            onInit() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/teacher/show-params.do',
+                    data: {},
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.kinds = root.kinds;
+                        this.teacherKinds = root.teacherKinds;
+                        this.hireLevels = root.hireLevels;
+                        this.sexs = root.sexs;
+                        this.yesornos = root.yesornos;
+                        this.teacherJobTypes = root.teacherJobTypes;
+                        this.policeRanks = root.policeRanks;
+                        this.nationalitys = root.nationalitys;
+                        this.educations = root.educations;
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                });
+            },
+        },
+        init: function (query, search) {},
+    });
+</script>
+<style>
+  .current-btn {
+    margin-right: 50px;
+    float: right;
+  }
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

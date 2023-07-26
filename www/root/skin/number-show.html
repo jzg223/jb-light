@@ -1,0 +1,127 @@
+<textarea>
+  <div class="product-number-info">
+    <div class="product-number-inner">
+      <ul class="q clearfix">
+        <li class="li-1" v-for="(type,x) of types" :key="x" :style="{'width': (100/types.length)+'%'}">
+          <b>
+            <i id="productNumber_1" data-sum="1587945">{{map[type.code]?map[type.code]:'0'}}</i>
+            <!-- <sup>+</sup> -->
+          </b>
+          <p>{{type.name}}</p>
+        </li>
+      </ul>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    mixins: [mixin_common],
+    props: ['types', 'datas'],
+    data: function () {
+      return {
+        map: {}
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+
+    },
+    watch: {
+      datas: {
+        handler(new_val, oldName) {
+          if (undefined != this.datas) {
+            this.map = {};
+            for (var data of this.datas) {
+              this.map[data.name] = data.value
+            }
+            this.map
+              = Object.assign({}, this.map);
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .product-number-info .product-number-inner {
+    width: 100%;
+    margin: 0 auto;
+    padding-top:10px;
+    padding-bottom: 10px;;
+  }
+
+  .product-number-info ul {}
+
+  .q {
+    zoom: 1;
+  }
+
+  .product-number-info li {
+    float: left;
+    text-align: center;
+    height: 90px;
+    /* border-left: 1px solid #66c7fd; */
+    /* color: #fff; */
+    padding-top: 1px;
+  }
+
+  .product-number-info li:first-child {
+    border: none;
+  }
+
+  .product-number-info li b {
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1;
+    display: inline-block;
+    position: relative;
+    margin: 15px 0 10px;
+  }
+
+  .product-number-info li p {
+    font-size: 14px;
+  }
+
+  .product-number-info li b i {
+    font-style: normal;
+  }
+
+  .product-number-info li b sup {
+    position: absolute;
+    font-size: 20px;
+    right: -15px;
+    top: -3px;
+  }
+
+  .product-number-info li.li-2 b,
+  .product-number-info li.li-2 p {
+    padding-left: 70px;
+  }
+
+  .product-number-info li b em {
+    font-style: normal;
+    font-size: 28px;
+    font-weight: 100;
+    padding-left: 2px;
+    position: relative;
+    top: -4px;
+  }
+
+  .product-number-info li.li-3 b,
+  .product-number-info li.li-3 p {
+    padding-left: 70px;
+  }
+
+  .product-number-info li.li-4 b,
+  .product-number-info li.li-4 p {
+    padding-left: 78px;
+  }
+
+  .product-number-info li.li-5 {
+    text-align: right;
+  }
+</style>

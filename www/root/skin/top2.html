@@ -1,0 +1,380 @@
+<textarea>
+  <div class="layui-header header header-demo">
+    <div class="layui-main" style="display: flex;">
+      <div class="admin-login-box" style="width: 290px;">
+        <a class="logo" style="left: 0;" href="#">
+          <span style="font-size: 22px;">{{title_manage}}</span>
+        </a>
+        <div class="admin-side-toggle">
+          <i class="fa fa-bars" aria-hidden="true"></i>
+        </div>
+      </div>
+      <div class="category" style="width: calc(100% - 505px);position: relative;overflow: hidden;">
+        <ul class="">
+          <li class="layui-nav-item " v-for="(app,x) of apps" :key="x" :class="{'layui-this':appName==app.app_name}">
+            <a :href="app.app_homeurl">{{app.app_title}}</a>
+          </li>
+        </ul>
+        <a href="javascript:;" class="prev"><span></span></a>
+			  <a href="javascript:;" class="next"><span></span></a>
+      </div>
+      
+      <ul class="layui-nav admin-header-item " style="width: 230;">
+        <li class="layui-nav-item">
+          <a href="javascript:;" class="admin-header-user">
+            <img src="/assets/images/police-logo.png" />
+            <span>&nbsp;&nbsp;{{$store.state.user.cnname}}&nbsp;&nbsp;</span>
+          </a>
+          <dl class="layui-nav-child">
+            <dd href="/whole-manage/index.html#pages/main"><a target="_blank" href="/whole-front/index.html">
+              <!-- <i aria-hidden="true" class="fa fa-user-circle"></i>  -->
+              <embed src="/assets/svg/home.svg">&nbsp;&nbsp;&nbsp;
+              门户</a></dd>
+            <dd :href="item.link" v-for="(item,x) of navs_personal" :key="x">
+              <a :href="item.link">
+                <!-- <i :class="item.icon" aria-hidden="true"></i>  -->
+                <embed v-if="item.icon" :src="item.icon">&nbsp;&nbsp;&nbsp;
+                {{item.title}}</a>
+            </dd>
+          </dl>
+        </li>
+      </ul>
+      <ul class="layui-nav admin-header-item-mobile">
+        <li class="layui-nav-item">
+          <a href="login.html"><i class="fa fa-sign-out" aria-hidden="true"></i> 注销</a>
+        </li>
+        <li class="layui-nav-item">
+          <a href="login.html"><i class="fa fa-sign-out" aria-hidden="true"></i> 注销</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    data() {
+      return {
+        messages: [],
+        notifys: [],
+        apps: [],
+        message_select: {},
+        state_message: false,
+        message_total: 0
+      }
+    },
+    computed: {
+      user() {
+        return this.$store.state.user
+      },
+    },
+    created() {
+      this.onInit();
+    },
+    mounted() {
+      $("#sidebar-toggle").on("click", function () { $("body").toggleClass("sidebar-hidden") })
+
+      setTimeout(() => {
+        $('.category ul li').click(function () {
+          indexC = $(this).index();
+          $(this).addClass('active').siblings().removeClass('active');
+          $('.cont').eq(indexC).addClass('active').siblings().removeClass('active');
+        })
+        //按钮箭头
+        var catew = $('.category').width() - 200;
+        var cateLiw = 0;
+        $('.category ul li').each(function () {
+          cateLiw += $(this).outerWidth();
+        })
+        var i = 0;
+        $('.next').click(function () {
+          $('.category ul').animate({
+            "margin-left": -catew + 'px'
+          }, 500)
+          i++;
+          if ((catew + 150) * i + (catew + 150) >= cateLiw) {
+            $('.prev').show();
+            $('.next').hide();
+          }
+        })
+        $('.prev').click(function () {
+          $('.category ul').animate({
+            "margin-left": 0 + 'px'
+          }, 500)
+          $(this).hide(); $('.next').show();
+        })
+      }, 1000);
+
+    },
+    methods: {
+      onRMessage(item) {
+        this.message_select = item;
+        this.message_select = Object.assign({}, this.message_select);
+        this.state_message = true;
+        instance_axios({
+          url: 'api/out/message/read.do',
+          data: {
+            id: item.id
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.onInit();
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+      },
+      onRNotify(item) {
+        instance_axios({
+          url: 'api/sys/notify/read.do',
+          data: {
+            id: item.id
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.onInit();
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+
+      },
+      onInit() {
+        whole_axios({
+          url: 'api/out/message/tops.do',
+          data: {
+            uid: this.$store.state.user.uid
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.messages = root.datas;
+            this.message_total = root.total;
+          } else {
+            this.$Message.error({
+              content: '提取消息失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取消息失败: ' + err);
+        });
+
+        whole_axios({
+          url: 'api/sys/notify/top.do',
+          data: {
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.notifys = root.datas;
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+
+        whole_axios({
+          url: 'api/out/app/list-my.do',
+          data: {
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.apps = root.datas;
+            if (undefined != root.datas && root.datas.length > 0) {
+              var bexist = false;
+              for (var app of root.datas) {
+                if (appName == app.app_name) {
+                  bexist = true; break;
+                }
+              }
+              if (false == bexist) {
+                // window.location.href = this.apps[0].app_homeurl;
+              }
+            }
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+      },
+      onEdit() {
+        console.log('++++++++++');
+        this.$refs.profile.onShow()
+      },
+    },
+    watch: {
+    },
+  });
+</script>
+<style>
+  .nav-active {
+
+    /* color: #7889ff; */
+  }
+
+  .page-header .navbar #navbarNav #leftNav>li>a {
+    color: #ffffff;
+  }
+
+  .icon-red {
+    color: #ff0000;
+  }
+
+  .head_top {
+    display: flex !important;
+    height: 60px;
+    justify-content: space-between !important;
+    flex-wrap: nowrap;
+  }
+
+  .head_top img {
+    float: left;
+    width: 71px;
+    height: 60px;
+  }
+
+  .head_top nav div:first-child {
+    float: left;
+  }
+
+  .head_top nav div:first-child span {
+    font-size: 20px;
+    color: #000000;
+    line-height: 60px;
+    font-weight: bold;
+  }
+
+  .head_nav .active {
+    color: yellow;
+  }
+
+  .header_nav {
+    border-bottom: none;
+  }
+
+  .admin-header-item>li:hover {
+    /* background-color: #4c4dab; */
+  }
+
+  .category {
+    margin-left: 10px;
+  }
+
+  .category ul li {
+    display: table-cell;
+    white-space: nowrap;
+    font-size: 14px;
+    text-align: center;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    position: relative;
+    /* margin: 0 20px;  */
+
+    line-height: 66px;
+  }
+
+  .category .layui-nav-item a {
+    padding-left: 10px;
+    padding-right: 10px;
+    display: block;
+  }
+
+  .category .layui-this:after {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 0;
+    height: 5px;
+    background-color: #5FB878;
+    transition: all .2s;
+    -webkit-transition: all .2s
+  }
+
+  .category a:hover,
+  .category .layui-this {
+    background-color: #4c4dab;
+    color: #fff
+  }
+
+  .category .layui-this a {
+    color: #fff
+  }
+
+  .category .prev {
+    display: none;
+    position: absolute;
+    top: 0;
+    width: 59px;
+    height: 65px;
+    box-shadow: 0 0 3px #c6c6c7;
+    background: #fff;
+    text-align: center;
+    font-size: 0;
+    left: 0;
+    border-right: 1px solid #e1e3e6;
+    padding-top: 25px;
+  }
+
+  .category .prev span {
+    display: inline-block;
+    vertical-align: middle;
+    width: 9px;
+    height: 14px;
+    background-repeat: no-repeat;
+    background-image: url(/layui/images/arrow.svg);
+    background-position: 96.77% 25%;
+    background-size: initial;
+  }
+
+  .category .next span {
+    display: inline-block;
+    vertical-align: middle;
+    width: 9px;
+    height: 14px;
+    background-repeat: no-repeat;
+    background-image: url(/layui/images/arrow.svg);
+    background-position: 61.29% 25%;
+    background-size: initial;
+  }
+
+  .category .next {
+    position: absolute;
+    top: 0;
+    width: 59px;
+    height: 65px;
+    box-shadow: 0 0 3px #c6c6c7;
+    background: #fff;
+    text-align: center;
+    font-size: 0;
+    right: 0;
+    border-left: 1px solid #e1e3e6;
+    display: block;
+    padding-top: 25px;
+  }
+</style>

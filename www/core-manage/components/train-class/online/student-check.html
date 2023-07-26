@@ -1,0 +1,260 @@
+<textarea>
+  <!-- 线上报名审核 -->
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">线上报名审核</div>
+    <div class="panel-body">
+      <Table ref="table" border highlight-row :columns="columns" :data="datas" 
+        @on-selection-change="onSelectedChange">
+        <template slot-scope="{ row, index }" slot="action">
+          <a href="javascript:;" v-if="0==row.status && 'view'!=ope" @click="onConfirm(row)">确认</a>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定要删除?" @on-ok="doRemove(row)">
+            <a href="javascript:void(0)">移除</a>
+          </Poptip>
+        </template>
+        <template slot-scope="{ row, index }" slot="status">
+          {{row.status | status}}
+        </template>
+        <template slot-scope="{ row, index }" slot="createdTime">
+          {{row.createdTime | dateTime}}
+        </template>
+      </Table>
+      <Row>
+        <Col span="12" style="padding-top:20px">
+          <Button v-if="'view'!=ope" type="primary" @click="onImport">导入参训人员</Button>
+          <Button type="primary" @click="onRefersh">刷新</Button>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定要确认所选学员?" @on-ok="onBatConfirm">
+            <Button type="primary">批量确认</Button>
+          </Poptip>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定要删除?" @on-ok="onBatRemove">
+            <Button type="primary">批量移除</Button>
+          </Poptip>
+          
+          <Button type="primary" @click="onFinish">完成设置</Button>
+        </Col>
+        <Col span="12" style="text-align: right;">
+        <Page :total="pager.total" :current="pager.current" :page-size="pager.size" show-total show-elevator show-sizer
+          style="margin-top: 20px;" @on-change="pageChange" @on-page-size-change="pageSizeChange" />
+        </Col>
+      </Row>
+      <view_train-class_import-student ref="import" @data-change="onRefersh"></view_train-class_import-student>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['id', 'classInfo','ope'],
+    mixins: [mixin_trainclass],
+    data: function () {
+      return {
+        datas: [],
+        datas_selected: [],
+        pager: {
+          total: 0,
+          size: 10,
+          current: 1
+        },
+        columns: [{
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
+        {
+          'title': '编号',
+          'key': 'id',
+          'sortable': true
+        },
+        {
+          'title': '姓名',
+          'key': 'xm',
+        },
+        {
+          'title': '所在单位',
+          'key': 'dw',
+        },
+        {
+          'title': '警号',
+          'key': 'jh',
+        },
+        {
+          'title': '身份证',
+          'key': 'idcard',
+        },
+        {
+          'title': '报名时间',
+          'slot': 'createdTime',
+        },
+        {
+          'title': '报名状态',
+          'slot': 'status',
+        },
+        {
+          'title': '操作',
+          slot: 'action',
+        }]
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onImport() {
+        this.$refs.import.onShow(this.id);
+      },
+      onFinish() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-student.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onConfirm(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/confirm.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onBatConfirm() {
+        if(0 == this.datas_selected.length){
+          this.$Message.warning('未选择数据');
+          return;
+        }
+        var ids = [];
+        for(var item of this.datas_selected){
+          ids.push(item.id);
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/bat-confirm.do',
+          data: {
+            ids:ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onBatRemove() {
+        if(0 == this.datas_selected.length){
+          this.$Message.warning('未选择数据');
+          return;
+        }
+        var ids = [];
+        for(var item of this.datas_selected){
+          ids.push(item.id);
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/bat-remove.do',
+          data: {
+            ids:ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('移除成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      doRemove(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/remove.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onSelectedChange(values) {
+        this.datas_selected = values;
+      },
+      onRefersh() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/list.do',
+          data: {
+            classId: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.datas = root.datas;
+            if (undefined != root.datas) {
+            }
+            this.pager.total = root.total;
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      pageChange(current) {
+        this.pager.current = current;
+        this.onRefersh();
+      },
+      pageSizeChange(pageSize) {
+        this.pager.size = pageSize;
+        this.onRefersh();
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.onRefersh();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

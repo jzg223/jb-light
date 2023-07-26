@@ -1,0 +1,160 @@
+<template>
+  <div><Button type="primary" @click="onCopy" class="btn">复制代码</Button>
+<pre>
+&lt;textarea&gt;
+    &lt;div class="cd-layout-aside"&gt;
+      &lt;div class="cd-layout-aside_bread"&gt;&lt;/div&gt;
+      &lt;div class="cd-layout-adside_content"&gt;
+        &lt;div class="page-header clearfix pvm"&gt;
+          &lt;h1 class="pull-left"&gt;
+            {{tinfo.title}}
+          &lt;/h1&gt;
+          &lt;div class="pull-right"&gt;
+            &lt;!-- &lt;a class="btn btn-success btn-sm" href="javascript:;" @click="$refs.create.onShow()"&gt;创建&lt;/a&gt; --&gt;
+          &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;components_design_searchform name="mine-person-search" @data-change="onSearch"&gt;&lt;/components_design_searchform&gt;
+        &lt;components_design_table ref="table" :search="search" :params="params" name="{{tinfo.name}}"&gt; 
+            &lt;template slot-scope="{ row, index }" slot="action"&gt;
+                &lt;a href="javascript:;" @click="onEdit(row)"&gt;编辑&lt;/a&gt;
+                &lt;Divider type="vertical" /&gt;
+                &lt;Poptip confirm title="确定要删除?" @on-ok="doRemove(row)"&gt;
+                  &lt;a href="javascript:void(0)"&gt;删除&lt;/a&gt;
+                &lt;/Poptip&gt;
+            &lt;/template&gt;
+          &lt;/components_design_table&gt;
+        
+        &lt;view_mine_person_leader_detail 
+          @data-change="onRefersh" ref="create" :type="1" :mineId="1"&gt;&lt;/view_mine_person_leader_detail&gt;
+        
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/textarea&gt;
+&lt;script&gt;
+  Rap.define(['leader/detail', '/components/design/table','/components/design/searchform'], {
+    props: {
+    },
+    data: function () {
+      return {
+        search: {},
+        params: {
+          type: 2
+        }
+      }
+    },
+    mounted() {
+    },
+    methods: {
+      onEdit(row) {
+        this.$refs.create.onShow(row);
+      },
+      doRemove() {
+
+      },
+      onSearch(search){
+        this.search = Object.assign({},search);
+        this.$refs.table.onSearch();
+      },
+      onSelectedChange(values) {
+        this.datas_selected = values;
+      },
+      onRefersh() {
+        this.$refs.table.onRefersh();
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+&lt;/script&gt;
+</pre>
+</div>
+</template>
+<script>
+  Rap.define([], {
+    props: ['tinfo'],
+    data: function () {
+      return {
+        row:{},
+        info: {
+        },
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+        },
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    mounted() {
+    },
+    methods: {
+      onCopy() {
+        var clipboard = new ClipboardJS('.btn', {
+          target: function () {
+            return document.querySelector('pre');
+          }
+        });
+
+        clipboard.on('success', function (e) {
+          console.log(e);
+          alert('复制成功！')
+        });
+
+        clipboard.on('error', function (e) {
+          console.log(e);
+        });
+      },
+      doSubmit(name) {
+        var user = this.$store.state.user.uid;
+        this.$refs[name].validate((valid) => {
+          if (valid) {
+            var info = Object.assign({}, this.info);
+            instance_axios({
+              method: 'post',
+              url: 'api/sys/form/update.do',
+              data: {
+                info: info,
+                id: this.fid,
+              }
+            }).then(res => {
+              let root = res.data
+              if (root.code === 200) {
+                this.$Message.success('成功设置');
+                this.$emit('data-change', {});
+                // this.getRoleListDataHandle()
+              } else {
+                this.$Message.error(root.message)
+              }
+            })
+          } else {
+            this.$Message.warning('部分项为空');
+          }
+        });
+
+      },
+      onInit() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      formInfo: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.formInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

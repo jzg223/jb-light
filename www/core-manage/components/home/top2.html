@@ -1,0 +1,51 @@
+<template>
+  <div id="top-header">
+    <dv-decoration-8 class="header-left-decoration"></dv-decoration-8>
+    <dv-decoration-5 class="header-center-decoration"></dv-decoration-5>
+    <dv-decoration-8 class="header-right-decoration" :reverse="true"></dv-decoration-8>
+    <div class="center-title">调训综合数据</div>
+  </div>
+  <!-- <div class="bnt">
+		<div class="topbnt_left fl">
+			<ul>
+				<li :class="{'active':nav==currentNav}" v-for="(nav,x) of lefts" :key="x"><a :href="'#pages/'+nav">{{leftNames[x]}}</a></li>
+			</ul>
+		</div>
+		<h1 class="tith1 fl">教育训练分析</h1>
+		<div class=" fr topbnt_right">
+			<ul>
+				<li><a  v-for="(nav,x) of rights" :key="x">{{rightNames[x]}}</a></li>
+			</ul>
+
+		</div>
+	</div> -->
+</template>
+<script>
+  Rap.define([], {
+    data() {
+      return {
+        lefts:['train','exam','course'],
+        leftNames:['培训','考试','课程'],
+        rights:['doc','question'],
+        rightNames:['资源','试题'],
+        currentNav:''
+      }
+    },
+    computed: {
+    },
+    created() {
+      this.$root.$on('nav-change',(nav)=>{
+        this.currentNav = nav;
+      })
+    },
+    mounted() {
+    },
+    methods: {
+      
+    },
+    init(query) {
+    },
+    watch: {
+    },
+  });
+</script>

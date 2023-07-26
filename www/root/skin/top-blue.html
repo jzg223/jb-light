@@ -1,0 +1,228 @@
+<template>
+  <div style="position: absolute;height: 88px;top:0px;width: 100%;background:url(/blue/images/topbg.gif) repeat-x;">
+    <div class="topleft">
+      <a href="main.html" target="_parent"><img src="/whole-manage/assets/img/jh.png" style="height: 71px;" title="系统首页" /></a>
+    </div>
+
+    <ul class="nav headernav">
+      <li v-for="(app,x) of apps" :key="x"><a :href="app.app_homeurl"  :class="{'selected':appName==app.app_name}" class="">
+        
+        <embed v-if="app.app_icon" :src="app.app_icon" />
+        <img v-else src="/blue/images/icon01.png" title="工作台" />
+          <h2>{{app.app_title}}</h2>
+        </a></li>
+    </ul>
+
+    <div class="topright">
+      <ul>
+        <li><span><img src="/blue/images/help.png" title="帮助" class="helpimg" /></span><a href="#">帮助</a></li>
+        <li><a href="#">关于</a></li>
+        <li><a href="login.html" target="_parent">退出</a></li>
+      </ul>
+
+      <div class="user">
+        <span>admin</span>
+        <i>消息</i>
+        <b>5</b>
+      </div>
+
+    </div>
+  </div>
+</template>
+<script>
+  Rap.define([], {
+    data() {
+      return {
+        messages: [],
+        notifys: [],
+        apps: []
+      }
+    },
+    computed: {
+      user() {
+        return this.$store.state.user
+      },
+    },
+    created() {
+      this.onInit();
+    },
+    mounted() {
+      $("#sidebar-toggle").on("click", function () { $("body").toggleClass("sidebar-hidden") })
+    },
+    methods: {
+      onRMessage(item) {
+        instance_axios({
+          url: 'api/sys/message/read.do',
+          data: {
+            id: item.id
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.onInit();
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+      },
+      onRNotify(item) {
+        instance_axios({
+          url: 'api/sys/notify/read.do',
+          data: {
+            id: item.id
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.onInit();
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+
+      },
+      onInit() {
+        instance_axios({
+          url: 'api/sys/message/top.do',
+          data: {
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.messages = root.datas;
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+
+        instance_axios({
+          url: 'api/sys/notify/top.do',
+          data: {
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.notifys = root.datas;
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+
+        instance_axios({
+          url: 'api/out/app/list-my.do',
+          data: {
+          },
+          method: 'POST'
+        }).then(res => {
+          var root = res.data;
+          if (200 === root.code) {
+            this.apps = root.datas;
+            if (undefined != root.datas && root.datas.length > 0) {
+              var bexist = false;
+              for (var app of root.datas) {
+                if (appName == app.app_name) {
+                  bexist = true; break;
+                }
+              }
+              if (false == bexist) {
+                window.location.href = this.apps[0].app_homeurl;
+              }
+            }
+          } else {
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+      },
+      onEdit() {
+        console.log('++++++++++');
+        this.$refs.profile.onShow()
+      },
+      goOut() {
+        clearToken();
+        Rap.go('pages/login');
+      }
+    },
+    watch: {
+    },
+  });
+</script>
+<style>
+  .headernav embed{
+    width: 45px;
+    height: 45px;
+    margin-top: 10px;
+  }
+  .nav-active {
+
+    /* color: #7889ff; */
+  }
+
+  .page-header .navbar #navbarNav #leftNav>li>a {
+    color: #ffffff;
+  }
+
+  .icon-red {
+    color: #ff0000;
+  }
+
+  .head_top {
+    display: flex !important;
+    height: 60px;
+    justify-content: space-between !important;
+    flex-wrap: nowrap;
+  }
+
+  .head_top img {
+    float: left;
+    width: 71px;
+    height: 60px;
+  }
+
+  .head_top nav div:first-child {
+    float: left;
+  }
+
+  .head_top nav div:first-child span {
+    font-size: 20px;
+    color: #000000;
+    line-height: 60px;
+    font-weight: bold;
+  }
+
+  .head_nav .active {
+    color: yellow;
+  }
+
+  .header_nav {
+    border-bottom: none;
+  }
+</style>

@@ -1,0 +1,155 @@
+<textarea>
+    <!-- 界面资源树组件，供授权组件调用 -->
+    <Tree ref="tree" :data="nodes" @on-check-change="onSelect" show-checkbox :render="renderContent"></Tree>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['value'],
+        data() {
+            return {
+                nodes: [],
+                alls: [],
+                map: {} //
+            }
+        },
+        methods: {
+            onTake() {
+                //提取所选节点,供授权组件调用
+                var nodes = this.$refs.tree.getCheckedAndIndeterminateNodes();
+                var ids = [];
+                for (var index in nodes) {
+                    var node = nodes[index];
+                    var type = node.type;
+                    ids.push({ 'type': type, 'res_id': node.id });
+                }
+                return ids;
+            },
+            onRefersh() {
+                var instance = this;
+
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/uifunction/tree.do',
+                    data: {
+                        info: this.info
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var modules = root.modules;
+                        var functions = root.functions;
+                        var needs = [];
+                        for (var x = 0; x < modules.length; x++) {
+                            var node = modules[x];
+                            if (0 == node.pid || null == node.pid) {
+
+                                var childs = this.findChilds(node.id, modules, functions);
+                                this.findFunctions(node.id, functions, childs);
+                                var checked = (undefined != this.map['m' + node.id]) ? true : false;
+                                needs.push({ 'id': node.id, 'key': 'm' + node.id, 'title': node.name, type: 'uimodule', expand: true, 'children': childs, checked: checked });
+                            }
+                        }
+                        this.nodes = needs;
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            findChilds(pid, alls, functions) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        var childs = this.findChilds(node.id, alls, functions);
+                        this.findFunctions(node.id, functions, childs);
+                        var checked = (undefined != this.map['m' + node.id]) ? true : false;
+                        needs.push({ 'id': node.id, 'key': 'm' + node.id, 'title': node.name, checked: checked, expand: true, type: 'uimodule', 'children': childs });
+                    }
+                }
+                return needs;
+            },
+            findFunctions(pid, alls, childs) {
+                if (undefined != alls) {
+                    for (var index in alls) {
+                        var node = alls[index];
+                        if (pid == node.umid) {
+                            var checked = (undefined != this.map['f' + node.id]) ? true : false;
+                            childs.push({ 'id': node.id, 'key': 'f' + node.id, 'title': node.name, type: 'uifunction', checked: checked });
+                        }
+                    }
+                }
+            },
+            onSelect(nodearray, node) {
+            },
+            renderContent(h, { root, node, data }) {
+                if ('uifunction' == data.type) {
+                    return h('span', {
+                        style: {
+                            display: 'inline-block',
+                            width: '100%'
+                        }
+                    }, [
+                            h('span', [
+
+                                h('span', data.title)
+                            ]),
+                            h('span', {
+                                style: {
+                                    display: 'inline-block',
+                                    float: 'right',
+                                    marginRight: '32px'
+                                }
+                            })
+                        ]);
+                } else {
+                    return h('span', {
+                        style: {
+                            display: 'inline-block',
+                            width: '100%'
+                        }
+                    }, [
+                            h('span', [
+                                h('Icon', {
+                                    props: {
+                                        type: ('uimodule' == data.type) ? ('md-card') : ('md-cube')
+                                    },
+                                    style: {
+                                        marginRight: '3px'
+                                    }
+                                }),
+                                h('span', data.title)
+                            ]),
+                            h('span', {
+                                style: {
+                                    display: 'inline-block',
+                                    float: 'right',
+                                    marginRight: '32px'
+                                }
+                            })
+                        ]);
+                }
+
+            },
+        },
+        watch: {
+            'value': function (val_new) {
+                this.map = {};
+                if (undefined != val_new) {
+                    for (var node of val_new) {
+
+                        if ('uifunction' == node.type) {
+                            var type = ('uifunction' == node.type) ? 'f' : 'm';
+                            this.map[type + node.resource] = '';
+                        }
+                    }
+                }
+                this.onRefersh();
+            }
+        },
+        created() {
+        },
+        init: function () {
+        }
+    })
+
+</script>

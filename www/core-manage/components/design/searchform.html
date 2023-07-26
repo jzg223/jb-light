@@ -1,0 +1,106 @@
+<textarea>
+  <div style="background-color: rgb(255, 255, 255); border-bottom: 1px solid #e7eaec; padding: 10px;margin-top:-20px;">
+  <table width="100%">
+    <tr>
+      <td style="vertical-align: middle;padding-top:18px;">
+          <Form ref="info" :model="info" :rules="rules" :label-width="labelwidth">
+              <template v-for="row of rows">
+                <Row>
+                  <template v-for="cell of row">
+                    <Col :span="24/row.length">
+                    <FormItem :label="cell.title" :prop="cell.name">
+                      <component v-bind:is="'components_design_'+cell.type" v-if="'my'!=cell.type && 'text'!=cell.type" :cell="cell" 
+                        :source="info[cell.name]"  @change="onSelectChange"></component>
+                      <!-- <components_design_select ></components_design_select> -->
+                      <Input v-if="'text'==cell.type" type="text" v-model="info[cell.name]" placeholder="" 
+                        :readonly="1===cell.readonly && 1==state"/>
+                      <slot v-if="'my'==cell.type" :name='cell.comname'></slot>
+                    </FormItem>
+                    </Col>
+                  </template>
+                </Row>
+              </template>
+              <slot name='submit'></slot>
+            </Form>
+      </td>
+      <td style="vertical-align: middle;padding-left:20px;">
+        <Button type="primary" icon="ios-search" @click="onSearch">查询</Button>
+      </td>
+    </tr>
+  </table>
+  </div>
+  
+</textarea>
+<script>
+  Rap.define(['select','text', 'fj', 'date', 'time', 'image', 'file','fattext','radio','checkbox'], {
+    props: ['name', 'rules'],
+    data: function () {
+      return {
+        labelwidth: 180,
+        info: {
+        },
+        rows: []
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onSelectChange(json) {
+        this.setItem(json.field, json.value);
+      },
+      setItem(key, value) {
+        this.info[key] = value;
+        this.info = Object.assign({}, this.info);
+      },
+      onInit() {
+        design_axios({
+          method: 'post',
+          url: 'api/design/form/take.do',
+          data: {
+            name: this.name,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var config = root.config;
+            var content = config.content;
+            if (undefined != content && null != content && '' != content) {
+              var opes = JSON.parse(content);
+              this.rows = opes;
+            }
+            if(undefined != config.labelwidth && 0!= config.labelwidth){
+              this.labelwidth = config.labelwidth;
+            }
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onSearch(){
+        this.$emit("data-change",this.info);
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      name: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

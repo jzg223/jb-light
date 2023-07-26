@@ -1,0 +1,127 @@
+<textarea>
+    <!-- 部门选择组件，只能选择一个部门 -->
+    <Cascader :data="nodes" :value="values" @on-change="onSelect" 
+       height="200" change-on-select transfer="true"></Cascader>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['value'],
+        data() {
+            return {
+                nodes: [],
+                alls: [],
+                state_load: false,
+                values: [],
+                map: {}
+            }
+        },
+        methods: {
+
+            onRefersh() {
+                var rootRegion = this.$store.state.user.properties.region;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/region/all-child.do',
+                    data: {
+                        region: rootRegion
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        var alls = root.datas;
+                        this.alls = alls;
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            this.map[node.id + ''] = node;
+                            if (rootRegion == node.code) {
+                                needs.push({ 'value': node.id + '', 'code': node.code, 'label': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                            }
+                        }
+                        this.nodes = needs;
+                        this.onFill(this.value + '');
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        needs.push({
+                            'value': node.id + '',
+                            'code': node.code,
+                            'label': node.name, expand: true, 'children': this.findChilds(node.id, alls)
+                        });
+                    }
+                }
+                return needs;
+            },
+            onSelect(values, nodes) {
+                console.log(JSON.stringify(values));
+                console.log(JSON.stringify(nodes));
+                if (values.length > 0) {
+                    this.$emit("select-change", { value: values[values.length - 1], level: values.length, code: nodes[nodes.length - 1].code });
+                    this.$emit("select-change1", nodes[nodes.length - 1]);
+                } else {
+                    this.$emit("select-change", { value: '', level: 0 });
+                    this.$emit("select-change1", nodes[nodes.length - 1]);
+                }
+
+            },
+            onFill() {
+                var new_val = 0;
+                if (undefined != this.value) {
+                    for (var item of this.alls) {
+                        if (this.value == item.code) {
+                            new_val = item.id;
+                            break;
+                        }
+                    }
+                }
+                
+                var current = new_val + '';
+                var needs = [];
+                while (true) {
+                    var node = this.map[current];
+                    if (undefined == node) {
+                        break;
+                    }
+                    needs.unshift(current);
+                    if (0 == node.pid || '' == node.pid || null == node.pid) {
+                        break;
+                    }
+                    current = node.pid + '';
+                }
+                this.values = needs;
+                this.values = Object.assign([], this.values);
+                this.state_load = true;
+            }
+        },
+        created() {
+            this.onRefersh();
+            this.$root.$on("region-change", () => {
+                this.onRefersh();
+            })
+        },
+        watch: {
+            value: {
+                handler(new_val, oldName) {
+                    this.onFill(new_val);
+                },
+                immediate: true
+            }
+        },
+        init: function () {
+        }
+    })
+
+</script>

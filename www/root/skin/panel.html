@@ -1,0 +1,50 @@
+<template>
+    <!-- <skin_card :title="title">
+        <template slot="opes" v-if="$slots.opes">
+            <slot name="opes"></slot>
+        </template>
+        <template slot="body">
+            <slot name="body"></slot>
+        </template>
+    </skin_card> -->
+    <!-- <div class="">
+        <div class="mainindex">
+            
+        </div>
+    </div> -->
+    <div class="bgw radius4">
+        <div class="title c6 f16 plr15 tabs-nav">
+            <span class="active">{{title}}</span>
+            <span class="pull-right f12 c6" v-if="$slots.opes" style="line-height:52px;">
+                <slot name="opes"></slot>
+            </span>
+
+        </div>
+        <div class="" style="padding: 10px;">
+            <slot name="body"></slot>
+        </div>
+    </div>
+
+</template>
+<script>
+    Rap.define(['/skin/card'], {
+        props: ['title'],
+        data: function () {
+            return {
+            }
+        },
+        created: function () {
+        },
+        methods: {
+        },
+        init: function (query, search) {
+        },
+        watch: {
+        }
+    })
+</script>
+<style>
+    .flex {
+        flex: 1 1 0% !important;
+    }
+</style>

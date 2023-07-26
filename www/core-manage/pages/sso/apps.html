@@ -1,0 +1,125 @@
+<textarea>
+  <skin_card title="应用管理">
+    <template slot="opes">
+      <a href="javascript:void(0)" @click="$refs.create.onShow()">添加</a>
+    </template>
+    <template slot="body">
+      <Form :model="search" inline>
+        <FormItem prop="keyword">
+          <Input type="text" v-model="search.keyword" placeholder="" />
+        </FormItem>
+        <FormItem>
+          <Button type="primary" @click="onSearch">搜索</Button>
+        </FormItem>
+      </Form>
+      <components_table :columns="columns" :config="config" ref="table">
+        <template slot-scope="{ row, index }" slot="action">
+          <a :href="'#pages/sso/app-user?id='+row.id">账号关联</a>
+          <Divider type="vertical" />
+          <a href="javascript:;" @click="onEdit(row)">编辑</a>
+          <Divider type="vertical" />
+          <Poptip confirm title="确定要删除?" @on-ok="doRemove(row)">
+            <a href="javascript:void(0)">删除</a>
+          </Poptip>
+        </template>
+        <template slot-scope="{ row, index }" slot="status">
+          {{row.status | status}}
+        </template>
+      </components_table>
+      <components_app_create ref="create" @data-change="onRefersh"></components_app_create>
+    </template>
+  </skin_card>
+</textarea>
+<script>
+  Rap.define(['/components/app/create', '/components/table'], {
+    props: {
+    },
+    data: function () {
+      return {
+        search:{},
+        config: {
+          url: 'api/manage/application/list.do',
+          pageSize: 20
+        },
+        columns: [{
+          type: 'selection',
+          width: 80,
+          align: 'center'
+        },
+        {
+          'title': '编号',
+          'key': 'id',
+          width: 120,
+        },
+        {
+          'title': '名称',
+          'key': 'app_name',
+          width: 160,
+        },
+        {
+          'title': '标题',
+          'key': 'app_title',
+          width: 160,
+        },
+        {
+          'title': '主页',
+          'key': 'app_homeurl',
+          width: 300,
+        },
+        {
+          'title': '描述',
+          'key': 'app_desc',
+          minwidth: 160,
+        },
+        {
+          width: 200,
+          fixed: "right",
+          'title': '操作',
+          slot: 'action',
+        }]
+      }
+    },
+    mounted() {
+      this.onRefersh();
+      this.$root.$on("application-change", () => {
+        this.onRefersh();
+      })
+    },
+    methods: {
+      onSearch(){
+      },
+      onEdit(row) {
+        this.$refs.create.onShow(row);
+      },
+      doRemove(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/application/delete.do',
+          data: {
+            id: row.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.onRefersh();
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onSelectedChange(values) {
+        this.datas_selected = values;
+      },
+      onRefersh() {
+        this.$refs.table.onRefersh();
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>

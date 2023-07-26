@@ -1,0 +1,150 @@
+<textarea>
+  <Modal v-model="state_show" title="培训计划维护" width="800">
+    <components_design_form ref="form" name="train-plan-form" :rules="rules" :source="info">
+      <template slot="add-unit">
+        <components_train-plan_add-unit v-if="showUnit"></components_train-plan_add-unit>
+      </template>
+    </components_design_form>
+    <div slot="footer">
+      <Button type="primary" @click="doSubmit('info')">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+  Rap.define([ '/components/design/form', 'add-unit'], {
+    mixins:[mixin_common],
+    data: function () {
+      return {
+        types: [],
+        state_show: false,
+        showUnit: false,
+        info: {},
+        rules: {
+          title: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          year: [
+            { required: true, message: '请选择年度', trigger: 'blur' }
+          ],
+          limitedTime: [
+            { required: true, message: '请选择开始时间', trigger: 'blur' }
+          ],
+          score: [
+            { required: true, message: '请输入', trigger: 'blur' }
+          ],
+          passScore: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          limitedTime: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          paperId: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+        },
+        id: 0,
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    mounted() {
+    },
+    methods: {
+      async doSubmit() {
+        var json = await this.$refs.form.take();
+        json.startDate = json.beginDate;
+        if(json.beginDate > json.endDate) {
+          console.log('');
+          this.$Message.error('开始时间不能大于结束时间')
+          return
+        }
+        if (false === json) {
+          return;
+        }
+        if(0 == this.id){
+          this.doInsert(json);
+        }else{
+          this.doUpdate(json);
+        }
+      },
+      doInsert(json){
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-plan/create.do',
+          data: {
+            info: json,
+            uid: this.$store.state.user.uid
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功创建');
+            this.$emit('data-change', {});
+            setTimeout(() => {
+              this.state_show = false;
+            }, 1000);
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err=>{
+          this.$Message.error("无法保存")
+        });
+      },
+      doUpdate(json){
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-plan/update.do',
+          data: {
+            info: json,
+            id: this.id,
+            uid: this.$store.state.user.uid
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功创建');
+            this.$emit('data-change', {});
+            setTimeout(() => {
+              this.state_show = false;
+            }, 1000);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err=>{
+          this.$Message.error("无法保存")
+        });
+      },
+      onShow(item) {
+        this.state_show = true;
+        if (undefined != item) {
+          this.info = Object.assign({}, int2str(item));
+          this.id = item.id;
+        } else {
+          var today = new Date();
+          this.info = {
+            year: today.getFullYear()+'',
+            beginDate: this.dateFormat(today),
+            endDate: this.dateFormat(today),
+            signupDate: this.dateFormat(today),
+            cyclenumber:'10',
+            personNum:'10'
+          }
+          this.info = Object.assign({}, this.info);
+          console.log(JSON.stringify(this.info));
+          this.id = 0;
+        }
+      },
+      onInit() {
+      }
+    },
+    init: function (query, search) {
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 4px;
+  }
+</style>

@@ -1,0 +1,167 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <Table highlight-row :columns="columns" :data="rows" :search="search" ref="table">
+      <template slot-scope="{ row, index }" slot="show">
+        <span v-if="row.state == 'ready'">未提交</span>
+        <span v-if="row.state == 'submited'">已提交</span>
+        <span v-if="row.state == 'confirmed'">已审核</span>
+      </template>
+      <template slot-scope="{ row, index }" slot="action">
+      </template>
+      <template slot-scope="{ row, index }" slot="status">
+        {{row.status | status}}
+      </template>
+      <template slot-scope="{ row, index }" slot="createdTime">
+        {{row.createdTime | dateTime}}
+      </template>
+      <template slot="opes">
+        
+      </template>
+    </Table>
+    <Button type="primary" @click="$refs.import.onShow(courses,stus)">导入</Button>
+        <Button type="primary" @click="onFinish" v-if="'view'!=ope">完成设置</Button>
+    <components_train-class_exam_import @data-change="onInit" :classId="id" :classInfo="classInfo" ref="import"
+      :coureseName="courseName" :person="person"></components_train-class_exam_import>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/table','/components/train-class/exam/import'], {
+    props: ['id', 'classInfo', 'ope','courseName','createdTime','person',],
+    mixins: [mixin_trainclass],
+    data: function () {
+      return {
+        params: {},
+        search: {},
+        columns: [
+          {
+            'title': '姓名',
+            'key': 'xm',
+            width: 160,
+          },
+          {
+            'title':'名称',
+            'key':'Name',
+            width: 160
+          },
+          {
+            'title':'日期',
+            'key':'createdTime',
+            width: 160
+          },
+          {
+            'tltle':'负责人',
+            'key':'person',
+            width: 160
+          },
+          {
+          'title': '联系电话',
+          'key': 'phone',
+          },
+          {
+          'title': '操作',
+          slot: 'action',
+        }
+        ],
+        rows: [],
+        stus:[],
+        courses:[]
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onFinish(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-sign.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('完成设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onRefersh() {
+        this.$refs.table.onRefersh();
+      },
+      onInit() {
+        this.columns = [];
+        this.rows = [];
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-score/show.do',
+          data: {
+            classId: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var courses = root.courses;
+            this.courses = courses;
+            var stus = root.stus;
+            this.stus = stus;
+            this.columns.push({
+              'title': '姓名',
+              'key': 'xm',
+              width: 160,
+            });
+            for (var course of courses) {
+              this.columns.push({
+                'title': course.name,
+                'key': '_' + course.id,
+                width: 160,
+              });
+            }
+            this.columns = Object.assign([], this.columns);
+            var map = {};
+            for (var score of root.scores) {
+              map[score.userId + '_' + score.courseId] = score.score;
+            }
+            for (var stu of stus) {
+              var json = {
+                xm: stu.xm,
+              };
+              for (var course of courses) {
+                console.log(stu.id + " --- " + course.id + " --- " + map[stu.id + '_' + course.id]);
+                json['_' + course.id] = map[stu.userId + '_' + course.id];
+              }
+              this.rows.push(json);
+            }
+            console.log(JSON.stringify(map));
+            console.log(JSON.stringify(this.rows));
+            this.rows = Object.assign([], this.rows);
+          } else if (201 == root.code) {
+
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      }
+
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

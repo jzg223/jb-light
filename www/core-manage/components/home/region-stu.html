@@ -1,0 +1,73 @@
+<template>
+    <div id="rose-chart">
+        <div class="rose-chart-title">学员地州累计分布</div>
+        <div id="_region_stu" style="width: 100%;height:455px;"></div>
+        <components_chart_xbar v-if="state_load" :names="names" :values="datas" title="" divid="_region_stu">
+        </components_chart_xbar>
+    </div>
+</template>
+<script>
+    Rap.define(['/components/chart/xbar'], {
+        props: [],
+        data() {
+            return {
+                names:[],
+                datas:[],
+                state_load:false
+            }
+        },
+        mounted() {
+            this.onInit();
+        },
+        methods: {
+            onInit() {
+                onSend('api/tj/region/by-stu-count.do', {}, (root) => {
+                    if (200 == root.code) {
+                        var names = [];
+                        var datas = [];
+
+                        var map = {};
+                        for (var item of root.datas) {
+                            map[item.name] = item.value;
+                        }
+                        for (var item of root.types) {
+                            names.push(item.name);
+                            var value = map[item.code];
+                            if(undefined == value){
+                                value = 0;
+                            }
+                            datas.push(value);
+                        }
+                        this.state_load = true;
+                        this.names = names;
+                        this.datas = datas;
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                })
+            },
+        },
+    })
+</script>
+<style>
+    #rose-chart {
+        width: 30%;
+        height: 100%;
+        background-color: rgba(6, 30, 93, 0.5);
+        border-top: 2px solid rgba(1, 153, 209, .5);
+        box-sizing: border-box;
+    }
+
+    .rose-chart-title {
+        height: 50px;
+        font-weight: bold;
+        text-indent: 20px;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+    }
+
+    .dv-charts-container {
+        height: calc(~"100% - 50px");
+    }
+</style>

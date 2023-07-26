@@ -1,0 +1,425 @@
+<textarea>
+  <!-- 表格输入 -->
+  <Form ref="info" :model="info" :rules="rules" :label-width="labelwidth" :show-message="false">
+    <table  :width="total_width" border=0 cellpadding=0 border-spacing=0 border-padding=0 class="tableform"
+        class="tableform">
+          <tr class="firstRow">
+            <th height="0px" width="0px"></th>
+            <th height="0px" v-for="(width,col) of columnWidths" v-bind:key="col" :width="width">&nbsp;</th>
+          </tr>
+          <tr v-for="(height,row) of rowHeights" v-bind:key="row">
+            <th class="firstCell" :height="height"></th>
+            <td v-for="(width,col) of columnWidths" v-bind:key="col" :rowspan="cells[(1+row)+'-'+(1+col)].rowspan"
+              :colspan="cells[(1+row)+'-'+(1+col)].colspan" :style="cells[(1+row)+'-'+(1+col)].style" :class="cells[(1+row)+'-'+(1+col)].cla">
+              <template v-if="undefined===configs[(1+row)+'-'+(1+col)]">{{cells[(1+row)+'-'+(1+col)].html}}</template>
+              <FormItem label-width="0" v-if="undefined!=configs[(1+row)+'-'+(1+col)]" label="" :prop="configs[(1+row)+'-'+(1+col)].name" show-message="false">
+              <component v-bind:is="'components_design_'+configs[(1+row)+'-'+(1+col)].type" v-if="'my'!=configs[(1+row)+'-'+(1+col)].type" :cell="configs[(1+row)+'-'+(1+col)]" 
+              :source="info[configs[(1+row)+'-'+(1+col)].name]"  @change="onSelectChange" @echange="onExtraChange" :state="state">
+              </component>
+              <slot v-if="'my'==configs[(1+row)+'-'+(1+col)].type" :name="configs[(1+row)+'-'+(1+col)].comname"></slot>
+              </FormItem>
+            </td>
+          </tr>
+      </table>
+    <slot name='submit'></slot>
+  </Form>
+</textarea>
+<script>
+  Rap.define(['select','text', 'fj', 'date', 'time', 'image', 'file','fattext','radio','checkbox'], {
+    props: ['name', 'rules', 'source'],
+    data: function () {
+      return {
+        labelwidth: 180,
+        info: {
+        },
+        rows: [],
+        config: {},
+        extras: {}, // 附加属性
+        state: 0, // 状态,0为新建,1为修改
+
+        rowHeights: [], // 行高
+        columnWidths: [], // 列宽
+        total_width: 0, // 总宽
+        total_height: 0, // 总高
+        cells: {}, // 单元格样式
+        configs: {}, // 单元格配置
+
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onSelectChange(json) {
+        this.setItem(json.field, json.value + "");
+      },
+      onExtraChange(json) {
+        this.extras[json.field] = json.value;
+        this.extras = Object.assign({}, this.extras);
+      },
+      setItem(key, value) {
+        this.info[key] = value;
+        this.info = Object.assign({}, this.info);
+      },
+      async take() {
+        if (undefined == this.rules) {
+          return this.info;
+        }
+        var state = false;
+        await this.$refs['info'].validate((valid) => {
+          if (valid) {
+            state = true;
+          } else {
+            this.$Message.warning('部分项为空');
+            state = false;
+          }
+        });
+        if (true == state) {
+          var info = Object.assign({}, this.info);
+          return info;
+        } else {
+          return false;
+        }
+
+      },
+      onInit() {
+        design_axios({
+          method: 'post',
+          url: 'api/design/grid/take.do',
+          data: {
+            name: this.name,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var config = root.config;
+
+            var design = {};
+            var input = {};
+            if (undefined != config.design && null != config.design && '' != config.design) {
+              design = JSON.parse(config.design);
+            }
+            if (undefined != config.input && null != config.input && '' != config.input) {
+              input = JSON.parse(config.input);
+            }
+            this.onFill(design, input);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onFill(vi_designJson, vi_inputJson) {
+        if (vi_designJson !== null) {
+          var json_design = vi_designJson;
+          this.rowHeights = json_design.rowHeights;
+
+          this.columnWidths = json_design.columnWidths;
+          for (var x = 0; x < this.columnWidths.length; x++) {
+            this.total_width += this.columnWidths[x];
+          }
+
+          var cells = [];
+          for (var x = 0; x < json_design.totalRow; x++) {
+            for (var y = 0; y < json_design.totalCol; y++) {
+              var style = json_design.styles[(x + 1) + '-' + (y + 1)];
+              if (undefined == style) {
+                style = {};
+              }
+              var rowspan = style.rowspan;
+              var colspan = style.colspan;
+              var html = style.value;
+              delete style.rowspan;
+              delete style.colspan;
+              delete style.html;
+              var cell = { row: x + 1, col: y + 1, style: style, html: html,
+                colspan: colspan, rowspan: rowspan };
+              cells.push(cell);
+            }
+          }
+
+          for (var y = 0; y < cells.length; y++) {
+            var cell = cells[y];
+            var key = cell.row + "-" + cell.col;
+            this.cells[key] = cell;
+            if (cell.rowspan > 1 || cell.colspan > 1) {
+              for (
+                var row_index = cell.row;
+                row_index <= cell.row + cell.rowspan;
+                row_index++
+              ) {
+                for (
+                  var col_index = cell.col;
+                  col_index <= cell.col + cell.colspan;
+                  col_index++
+                ) {
+                  if (row_index === cell.row && col_index === cell.col) {
+                    continue;
+                  }
+                  this.cells[row_index + "-" + col_index] = {
+                    style: { display: "none" }
+                  };
+                }
+              }
+            }
+          }
+        }
+        if (
+          undefined !== vi_inputJson &&
+          null !== vi_inputJson
+        ) {
+          this.configs = Object.assign({},vi_inputJson);
+        }
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      name: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      },
+      source: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            this.info = Object.assign({}, this.source);
+            var length = 0;
+            for (var key in new_val) {
+              length++;
+            }
+            if (0 == length) {
+              this.state = 0;
+            } else {
+              this.state = 1;
+            }
+            delete this.info._rowKey;
+            delete this.info._index;
+          } else {
+            this.info = {};
+          }
+        },
+        immediate: true
+      },
+      info: {
+        handler(new_val, oldName) {
+          var callback = this.config.changeCallBack;
+          if (undefined != callback && '' != callback) {
+            if (undefined != new_val) {
+              eval(callback);
+            } else {
+            }
+          }
+          this.$emit('data-change', this.info);
+
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>
+<style scoped>
+  .ivu-card-body {
+    padding: 8px;
+  }
+
+  .first {
+    width: 0px;
+    height: 0px;
+    font-size: 0px;
+    margin: 0px;
+    padding: 0px;
+  }
+
+  .cell-row {
+    height: 0px;
+    font-size: 0px;
+    margin: 0px;
+    padding: 0px;
+  }
+
+  .firstCell {
+    width: 0px;
+    font-size: 0px;
+    margin: 0px;
+    padding: 0px;
+  }
+
+  .tableform {
+    word-break: break-all;
+  }
+
+  .tableform fieldset {
+    padding: 10px;
+    margin: 10px;
+    color: #333;
+    border: #ccc dashed 1px;
+  }
+
+  .tableform legend {
+    color: #06c;
+    font-weight: 800;
+    background: #fff;
+    border: #b6b6b6 solid 1px;
+    padding: 3px 6px;
+  }
+
+  .tableform select {
+    background: none repeat scroll 0 0 #f9f9f9;
+    border-color: #666666 #cccccc #cccccc #666666;
+    border-style: solid;
+    border-width: 1px;
+    color: #333333;
+    padding: 2px;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+
+  .tableform textarea {
+    background: none repeat scroll 0 0 #f9f9f9;
+    border-color: #cccccc #cccccc #cccccc #cccccc;
+    border-style: solid;
+    border-width: 1px;
+    color: #333333;
+    padding: 2px;
+    vertical-align: middle;
+    font-size: 12px;
+  }
+
+  .tableform {
+    /*FONT-SIZE: 9pt;
+  color: #000;
+  margin-bottom: 10px;
+  border-collapse: collapse;
+  border-collapse:collapse;
+  table-layout: fixed;
+  width: 0;
+  height: 0;*/
+  }
+
+  .tableform td {
+    border: 1px solid #C0C0C0;
+    /*border-bottom: 1px solid #C0C0C0;*/
+    color: #000;
+    /*overflow: hidden;*/
+    /*padding-left: 5px;*/
+    /*padding-right: 5px;*/
+    text-overflow: ellipsis;
+    /*word-break: break-all;
+  word-wrap: break-word;*/
+    /*white-space: nowrap;*/
+    empty-cells: show;
+    padding: 2px;
+    border-width: 1px !important;
+    word-wrap: break-word;
+    font-size: 12px;
+
+  }
+
+  .tableform .form-control {
+    padding-right: 0px;
+  }
+
+  .tableform .inputtd {
+    padding: 5px;
+  }
+
+  .tableform .firstTR {
+    height: 0px;
+  }
+
+  .tableform .firstTR th {
+    border: none;
+    height: 0px;
+  }
+
+  .tableform .firstTH {
+    border: none;
+    width: 0px;
+  }
+
+  .tableform .input-text {
+    border-style: solid;
+    font-size: 12px;
+    height: 28px !important;
+    padding: 2px 0 2px 5px;
+    height: 23px;
+    font: 12px Arial, Helvetica, Tahoma, Verdana, Sans-Serif;
+  }
+
+  .fullwidth {
+    width: 100% !important;
+  }
+
+  .fullwidth2 {
+    /*width: 98% !important;*/
+    width: calc(100% - 20px);
+  }
+
+  .tableform .checkInput {
+    margin-top: -3px;
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+
+  .tableform .radioInput {
+    margin-top: -3px;
+    margin-left: 5px;
+    margin-right: 5px;
+  }
+
+  .tableform .cell_solid {
+    border-style: solid !important;
+    border-color: #eeeeee;
+  }
+
+  .tableform .cell_dashed {
+    border-style: dashed !important;
+  }
+
+  .tableform .cell_left {
+    border-style: none none none solid !important;
+  }
+
+  .tableform .cell_right {
+    border-style: none solid none none !important;
+  }
+
+  .tableform .cell_top {
+    border-style: solid none none !important;
+  }
+
+  .tableform .cell_bottom {
+    border-style: none none solid !important;
+  }
+
+  .tableform .cell_around {
+    border-style: none !important;
+  }
+
+  .tableform .selectTD {
+    /*border: 2px dashed #ccc !important;*/
+  }
+
+  .tableform .form-control {}
+
+  .ivu-form-item {
+    margin-bottom: 0px !important;
+  }
+
+  .firstRow {
+    height: 0px !important;
+    line-height: 0px;
+  }
+</style>

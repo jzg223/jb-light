@@ -1,0 +1,91 @@
+<!-- 线下导入 -->
+<textarea>
+    <div>
+        <div class="page-header clearfix pvm">
+            <h1 class="pull-left">
+                调训班【{{classInfo.name}}】管理
+            </h1>
+            <div class="pull-right">
+                <Tag>{{'online'==classInfo.mode?'线上':'线下'}}</Tag>
+                <Button size="small" @click="history.go(-1)">返回</Button>
+                <span v-if="'draft'==classInfo.status">
+                    <Button @click="beginSign" size="small">进入报道阶段</Button>
+                </span>
+                <spa v-if="'sign'==classInfo.status">
+                    <Button @click="beginRun" size="small">进入运行阶段</Button>
+                    <Button @click="returnDraft" size="small">退回准备阶段</Button>
+                </spa>
+                <spa v-if="'going'==classInfo.status">
+                    <Button @click="beginFinish" size="small">结束培训</Button>
+                    <Button @click="returnSign" size="small">退回报名阶段</Button>
+                </spa>
+                <spa v-if="'finished'==classInfo.status">
+                    <Button @click="returnRun" size="small">退回运行阶段</Button>
+                </spa>
+            </div>
+        </div>
+        <Steps :current="steps.indexOf(classInfo.status)">
+            <Step v-for="item of status" :title="item.title" content="" v-bind:key="item.name">
+                <template slot="content">
+                    <ButtonGroup vertical>
+                        <Button :type="url_current==nav.url?'primary':''" @click="go(nav,item.name)"
+                            v-for="nav of opes[item.name]">{{nav.title}}
+                            <Icon type="ios-close" v-if="undefined==status_ope[nav.name] ||0==status_ope[nav.name]">
+                            </Icon>
+                            <Icon type="ios-checkmark" v-else></Icon>
+                        </Button>
+                    </ButtonGroup>
+                </template>
+            </Step>
+        </Steps>
+    </div>
+</textarea>
+<script>
+    Rap.define(['student-import','student-check'], {
+        mixins:[mixin_trainclass_ope],
+        data: function () {
+            return {
+                steps: ['draft', 'sign', 'going', 'finished'],
+                status: DICT_TRAINCLASS_STATUS,
+                opes: {
+                    'draft': [
+                        { title: '基础设置', url: 'view_train-class_basic', name: 'basic' },
+                        { title: '设置队长', url: 'view_train-class_captain-set', name: 'captain' },
+                        { title: '设置指标', url: 'view_train-class_zb-set', name: 'zb' },
+                        // { title: '培训课程设置', url: 'view_train-class_course-set', name: 'course' },
+                        { title: '参训人员导入', url: 'view_train-class_offline_student-import', name: 'student' },
+                    ],
+                    'sign': [
+                        { title: '报道审核', url: 'view_train-class_offline_student-check', name: 'sign' },
+                    ],
+                    'going': [
+                        // { title: '日常行为审核', url: 'view_train-class_offline_action-check', name: 'action' },
+                        // { title: '考试设置', url: 'view_train-class_exam-set', name: 'exam' },
+                        { title: '考试成绩', url: 'view_train-class_score-check', name: 'score' },
+                        { title: '资料管理', url: 'view_train-class_documents', name: 'documents' },
+                        { title: '评测管理', url: 'view_train-class_tests', name: 'tests' },
+                    ],
+                    'finished': [
+                        { title: '生成训历', url: 'view_train-class_generate', name: 'calendar' },
+                    ]
+                },
+            }
+        },
+        created: function () {
+        },
+        mounted() {
+        },
+        methods: {
+
+        },
+        init: function (query, search) {
+        },
+        watch: {
+            id: {
+                handler(new_val, oldName) {
+                },
+                immediate: true
+            }
+        }
+    })
+</script>

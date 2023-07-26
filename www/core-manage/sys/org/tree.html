@@ -1,0 +1,177 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Tree :data="nodes" :render="renderContent" @on-select-change="onSelect"  :load-data="loadData"></Tree>
+</textarea>
+<script>
+    Rap.define([], {
+        data() {
+            return {
+                nodes: [],
+                alls: []
+            }
+        },
+        methods: {
+            renderContent(h, { root, node, data }) {
+                if ('org' == data.type) {
+                    return h('span', {
+                        style: {
+                            display: 'inline-block',
+                            width: '100%'
+                        }
+                    }, [
+                            h('span', [
+                                h('span', {
+                                    class:'icon-zuzhijigou iconfont',
+                                    style: {
+                                        marginRight: '8px'
+                                    }
+                                }),
+                                h('span', data.title)
+                            ])
+
+                        ]);
+                } else {
+                    var icon = 'icon-shengjiquhua iconfont';
+                    if(2==data.code.length){
+                        icon = 'icon-shengjiquhua iconfont';
+                    }else if(4==data.code.length){
+                        icon = 'icon-shijiquhua iconfont';
+                    }else{
+                        icon = 'icon-xianjiquhua iconfont';
+                    }
+                    return h('span', {
+                        style: {
+                            display: 'inline-block',
+                            width: '100%'
+                        }
+                    }, [
+                            h('span', [
+                                h('span', {
+                                    class:icon,
+                                    style: {
+                                        marginRight: '8px'
+                                    }
+                                }),
+                                h('span', data.title)
+                            ])
+
+                        ]);
+                }
+
+            },
+            onFill(childs, orgs) {
+                var needs = [];
+                if (undefined != childs) {
+                    for (var item of childs) {
+                        var need = Object.assign({}, item);
+                        need.key = item.id + '';
+                        need.type = 'region';
+                        need.title = item.name;
+                        // if(undefined != item.childnum && item.childnum>0){
+                            need.loading = false;
+                            need.children = [];
+                        // }
+                        needs.push(need);
+                    }
+                }
+                if (undefined != orgs) {
+                    for (var item of orgs) {
+                        var need = Object.assign({}, item);
+                        need.type = 'org';
+                        need.key = item.id + '';
+                        need.title = item.name;
+                        needs.push(need);
+                    }
+                }
+                return needs;
+            },
+            loadData(node_cu, callback) {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/region/takeChilds.do',
+                    data: {
+                        id: node_cu.key
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        var datas = root.datas;
+                        // if (undefined == datas || 0 == datas.length) {
+                        //     callback([]);
+                        //     return;
+                        // }
+                        var needs = this.onFill(root.childs,root.orgs);
+                        callback(needs);
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    console.log(err);
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/region/show-code.do',
+                    data: {
+                        code: this.$store.state.user.properties.region
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        var data = root.data;
+                        var node = Object.assign({}, data);
+                        node.key = data.id + '';
+                        node.title = data.name;
+                        node.selected = true;
+                        node.expand = true;
+                        node.type = 'region';
+
+                        var needs = this.onFill(root.childs,root.orgs);
+                        
+                        node.children = needs;
+                        this.nodes = [node];
+
+                        // this.$emit("select-change", node);
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    console.log(err);
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        needs.push({ 'key': node.id + '', code: node.code, 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(values, nodes) {
+                if (values.length > 0) {
+                    var node = values[0];
+                    if ('org' == node.type) {
+                        this.$emit("org-change", values[0]);
+                    } else {
+                        this.$emit("region-change", values[0]);
+                    }
+
+                } else {
+                    this.$emit("region-change", {});
+                }
+
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        init: function () {
+        }
+    })
+
+</script>

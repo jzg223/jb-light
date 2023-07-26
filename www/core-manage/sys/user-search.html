@@ -1,0 +1,203 @@
+<!-- 引用外部样式 -->
+<link href="css/projects.css" rel="stylesheet" media="screen" />
+<template>
+    <div>
+        <div class="top-bar clearfix">
+            <div class="row gutter">
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
+                    <div class="page-title">
+                        <h3>账号管理</h3>
+                        <p>Small description about this Projects / <a href="index.html">Home</a></p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
+                    <ul class="right-stats" id="mini-nav-right">
+                        <li>
+                            <a href="javascript:void(0)" class="btn btn-danger"><span>76</span>Sales</a>
+                        </li>
+                        <li>
+                            <a href="tasks.html" class="btn btn-success">
+                                <span>18</span>Tasks</a>
+                        </li>
+                        <li>
+                            <a href="javascript:void(0)" class="btn btn-info"><i class="icon-download6"></i> Export</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <!-- Top Bar Ends -->
+
+        <!-- Row starts -->
+        <div class="row gutter" style="background: #fff">
+            <Table border :columns="columns" :data="datas">
+                <template slot-scope="{ row, index }" slot="edit">
+                    <Button type="text" size="small" icon="ios-build" style="margin-right: 5px" @click="onShow(row.userID)"></Button>
+                </template>
+                <template slot-scope="{ row, index }" slot="delete">
+                    <Poptip confirm title="确定要删除该账户?" @on-ok="onRemove(row.userID)" ok-text="确定" cancel-text="取消">
+                        <Button type="text" icon="ios-close" size="small" style="margin-right: 5px"></Button>
+                    </Poptip>
+                </template>
+                <template slot-scope="{ row, index }" slot="properties">
+                    <Button type="primary" @click="onShowProperties(row.userID)" size="small" style="margin-right: 5px">权限</Button>
+                </template>
+            </Table>
+            <Row style="padding-top:5px;">
+                <Col span=12>
+                <Button @click="onAdd()" icon="ios-add">添加</Button>
+                </Col>
+                <Col span=12 style="float:right">
+                <page style="float:right" :total="total" show-total show-elevator @on-change="onPageChange" :transfer="true"
+                    :page-size="page_size"></page>
+                </Col>
+            </Row>
+            <div style="padding-top:5px;padding-bottom:5px;">
+
+            </div>
+        </div>
+        <!-- Row ends -->
+
+
+
+    </div>
+</template>
+<script>
+    //这里定义组件
+    Rap.define([], {
+        data: function () {
+            return {
+                columns: [{
+                    title: '登录账户',
+                    key: 'userID',
+                    fixed: 'left'
+                }, {
+                    title: '账户名称',
+                    key: 'userName'
+                },
+                {
+                    title: '修改',
+                    key: 'userID',
+                    width: 150,
+                    align: 'center',
+                    slot: 'edit',
+                },
+                {
+                    title: '删除',
+                    key: 'userID',
+                    width: 150,
+                    align: 'center',
+                    slot: 'delete',
+                },
+                {
+                    title: '设置权限',
+                    key: 'userID',
+                    width: 150,
+                    align: 'center',
+                    slot: 'properties',
+                }],
+                datas: [],
+                total: 0,
+                org_select: '',
+                page_size: 10,
+                page_no: 1,
+                info_search: { 'keyword': '', 'org': '' }
+            }
+        },
+        methods: {
+            onAdd() {
+                this.$refs.user.onAdd();
+            },
+            onShow(uid) {
+                this.$refs.user.onShow(uid);
+            },
+            onRemove(uid) {
+                var instance = this;
+                var url = '../sys/user/delete.action';
+                axios.post(url, {
+                    uid: uid,
+                }, {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(function (response) {
+                        var root = response.data;
+                        if (200 == root.code) {
+                            instance.$Modal.success({
+                                title: '删除账户成功',
+                                content: root.message
+                            });
+                            instance.onRefersh();
+                            return;
+                        }
+                        instance.$Modal.error({
+                            title: '删除账户失败',
+                            content: root.message
+                        });
+                    }).catch(function (error) {
+                        console.info(error);
+                        instance.$Modal.error({
+                            title: '删除账户失败',
+                            content: error
+                        });
+                    });
+            },
+            onRefersh() {
+                var instance = this;
+                axios.post('../sys/user/withOrg.action', {
+                    oid: this.org_select,
+                    pager: { pageNo: this.page_no - 1, pageSize: this.page_size }
+                }, {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }).then(function (response) {
+                        var root = response.data;
+                        if (200 == root.code) {
+                            instance.datas = root.datas;
+                            instance.total = root.total;
+                            return;
+                        }
+                        instance.$Modal.error({
+                            title: '提取角色账户列表失败',
+                            content: root.message
+                        });
+                    }).catch(function (error) {
+                        instance.$Modal.error({
+                            title: '提取角色账户列表失败',
+                            content: error
+                        });
+                    });
+            },
+            onPageChange(event) {
+                this.page_no = event;
+                this.onRefersh();
+            },
+            onShowProperties(uid) {
+                var url = '../basic/user/showUserProperties.action?currentUserID=' + uid;
+                window.open(url, "",
+                    "height=600px,width=900px,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,modal=yes");
+            }
+        },
+        created() {
+            this.$root.$on("org-change", (rid) => {
+                this.org_select = rid;
+                this.onRefersh();
+            })
+
+            this.$root.$on("user-refersh", () => {
+                this.onRefersh();
+            })
+
+            this.$root.$on("roleproperties-change", (rid) => {
+                var url = '../basic/role/showRoleProperties.action?currentRoleID=' + rid;
+                window.open(url, "",
+                    "height=600px,width=900px,menubar=no,toolbar=no,location=no,scrollbars=no,status=no,modal=yes");
+            })
+        },
+        watch: {
+        },
+        init: function () {
+        }
+    })
+</script>

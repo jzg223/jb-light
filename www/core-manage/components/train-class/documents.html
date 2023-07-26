@@ -1,0 +1,160 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">资料管理</div>
+    <div class="panel-body">
+      <Form ref="info" :model="info" :rules="rules" :label-width="180">
+        <FormItem>
+          <Button class="confirm" type="warning" v-if="'view'!==ope" @click="doConfirm('info')">确认</Button>
+        </FormItem>
+      </Form>
+      <Button type="primary" @click="showCreate=true" style="float: right;margin-right: 50px;">添加</Button>
+      <Modal
+        v-model="showCreate"
+        title="添加资料">
+        <Form ref="datas" :model="datas" :rules="rules" :label-width="80">
+          <Form-item label="名称" prop="name">
+            <Input v-model="datas.name" placeholder="请输入内容"></Input>
+          </Form-item>
+          <FormItem label="资源" prop="thumb">
+            <components_upload ref="img" ref="video" :sourceName="datas.mediaName" :sourceUri="datas.mediaUri"></components_upload>
+        </FormItem>
+          <!-- <Form-item label="路径" prop="path">
+            <Input v-model="info.path" placeholder="请输入内容"></Input>
+          </Form-item> -->
+          <Form-item label="备注" prop="note">
+            <Input v-model="datas.note" placeholder="请输入内容"></Input>
+          </Form-item>
+        </Form>
+        <div slot="footer">
+          <Button class="sub" type="primary" size="small" @click="doSubmit(datas)">提交</Button>
+        </div>
+      </Modal>
+      <div class="table_box">
+      <table class="table" width="100%">
+        <tr>
+          <th>名称</th>
+          <th>资源</th>
+          <!-- <th>路径</th> -->
+          <th>备注</th>
+          <th width="130">操作</th>
+        </tr>
+        <!-- <tr>
+          <td>***</td>
+          <td>**资料</td>
+          <td>图片</td>
+          <td>
+            <a href="javascript:;">管理</a>
+            <Poptip confirm title="确定要删除?">
+              <a href="javascript:;">删除</a>
+            </Poptip>
+          </td>
+        </tr> -->
+        </table>
+      </div>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/upload'], {
+    props: ['id', 'classInfo','ope'],
+    data: function () {
+      return {
+        info: {},
+        datas: {},
+        rules: {},
+        showCreate: false,
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      doConfirm(name) {
+        var info = Object.assign({}, this.info);
+        console.log(info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-documents.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err=> {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员')
+        })
+      },
+      doSubmit(data) {
+        let datas = data;
+        let json = this.$refs.video.take();
+        if (undefined != json) {
+            datas.content = json;
+          }
+        console.log(datas);
+        return;
+        // var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-documents.do',
+          data: {
+            info: datas,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onRefersh() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.info = Object.assign({},this.classInfo);
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .table_box {
+    padding: 0 35px;
+  }
+
+  .table {
+    margin-top: 45px;
+    border: 1px solid #dcdee2;
+  }
+
+  .table > tr:nth-of-type(odd) {
+    background-color: #f9f9f9;
+  }
+
+  .table > tr > th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+  }
+</style>

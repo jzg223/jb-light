@@ -1,0 +1,163 @@
+<template>
+  <div><Button type="primary" @click="onCopy" class="btn">复制代码</Button>
+  <pre>
+&lt;textarea&gt;
+  &lt;div&gt;
+      &lt;Alert&gt;{{formInfo.title}}&lt;/Alert&gt;
+      &lt;components_design_grid v-if="info.id" ref="form" name="{{formInfo.name}}" :rules="rules" :source="info"&gt;
+          &lt;FormItem slot="submit"&gt;
+            &lt;Button type="primary" @click="doSubmit('info')"&gt;提交&lt;/Button&gt;
+          &lt;/FormItem&gt;
+      &lt;/components_design_grid&gt;
+      
+  &lt;/div&gt;
+&lt;/textarea&gt;
+&lt;script&gt;
+  Rap.define(['/components/design/form'], {
+    data: function () {
+      return {
+        info: {
+        },
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          type: [
+            { required: true, message: '请选择类型', trigger: 'blur' }
+          ],
+        },
+        id: 0,
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      async doSubmit(name) {
+        var json = await this.$refs.form.take();
+        if (false === json) {
+          return;
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/***/**.do',
+          data: {
+            info: json,
+            uid: this.$store.state.uid,
+            id: this.id
+          }
+        }).then(res =&gt; {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功更新');
+            this.$emit('data-change', {});
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      field: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+&lt;/script&gt;
+</pre>
+</div>
+</template>
+<script>
+  Rap.define([], {
+    props: ['fid', 'formInfo', 'ope'],
+    data: function () {
+      return {
+        info: {
+        },
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+        },
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    mounted() {
+    },
+    methods: {
+      onCopy() {
+        var clipboard = new ClipboardJS('.btn', {
+          target: function () {
+            return document.querySelector('pre');
+          }
+        });
+
+        clipboard.on('success', function (e) {
+          console.log(e);
+          alert('复制成功！')
+        });
+
+        clipboard.on('error', function (e) {
+          console.log(e);
+        });
+      },
+      doSubmit(name) {
+        var user = this.$store.state.user.uid;
+        this.$refs[name].validate((valid) => {
+          if (valid) {
+            var info = Object.assign({}, this.info);
+            instance_axios({
+              method: 'post',
+              url: 'api/sys/form/update.do',
+              data: {
+                info: info,
+                id: this.fid,
+              }
+            }).then(res => {
+              let root = res.data
+              if (root.code === 200) {
+                this.$Message.success('成功设置');
+                this.$emit('data-change', {});
+                // this.getRoleListDataHandle()
+              } else {
+                this.$Message.error(root.message)
+              }
+            })
+          } else {
+            this.$Message.warning('部分项为空');
+          }
+        });
+
+      },
+      onInit() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      formInfo: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.formInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

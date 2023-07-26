@@ -1,0 +1,269 @@
+<textarea>
+  <div>
+  <Steps v-if="state_load" :current="current">
+    <template v-for="(step,x) of steps" >
+    <Step :title="step.title" content="" v-bind:key="step.name">
+      <template slot="content">
+        <ButtonGroup vertical>
+          <Button :disabled="x>current" :type="(undefined!=url_current && url_current==nav.url)?'primary':''" @click="go(nav,step)" v-for="nav of step.opes">{{nav.title}}
+            <Icon type="ios-close" v-if="undefined==status_flow || undefined==status_flow[nav.key] ||0==status_flow[nav.key]"></Icon>
+            <Icon type="ios-checkmark" v-else></Icon>
+          </Button>
+        </ButtonGroup>
+      </template>
+    </Step>
+    </template>
+  </Steps>
+  </div>
+</textarea>
+<!-- 输入 -->
+<!-- 输出 {auth:'',target:'',nexts:[]} -->
+<script>
+  Rap.define([], {
+    props: ['flowName', 'url_current', 'status', 'status_flow', 'scheme'],
+    data() {
+      return {
+        steps: [],
+        opes: {},
+        state_load: false,
+        auths_step: {},
+        auths_ope: {},
+        auths_next: {}
+      }
+    },
+    computed: {
+      current() {
+        var current = 0;
+        for (var x = 0; x < this.steps.length; x++) {
+          if (this.steps[x].name === this.status) {
+            current = x;
+          }
+        }
+        return current;
+      }
+    },
+    created() {
+    },
+    mounted() {
+    },
+    methods: {
+      canNext() {
+        if (undefined == this.status) {
+          this.$Message.error("当前状态不存在");
+          return false;
+        }
+        if (undefined == this.status_flow) {
+          this.$Message.error("当前流程状态为空");
+          return false;
+        }
+        var step = this.steps[this.current];
+        if (undefined == step) {
+          this.$Message.error("未知状态");
+          return false;
+        }
+
+        var opes = step.opes;
+        if (undefined == opes || 0 == opes.length) {
+          // this.$Message.error("该节点未配置流程操作");
+          opes = [];
+        }
+        for (var ope of opes) {
+          var key = ope.key;
+          if (undefined == key || '' == key) {
+            this.$Message.error("操作【" + ope.title + "】未配置key");
+            return false;
+          }
+          if (undefined == this.status_flow[key] || 0 == this.status_flow[key]) {
+            this.$Message.error("未完成【" + ope.title + "】");
+            return false;
+          }
+        }
+
+      },
+      go(ope, step) {
+        if (undefined == ope || undefined == ope.url) {
+          return;
+        }
+        var auth = '';
+        if (step.name == this.status) {
+          auth = this.auths_ope[ope.key];
+        } else {
+          auth = '0';
+        }
+        var state = true;
+        if (undefined == this.status_flow || undefined == this.status_flow[ope.key] || 0 == this.status_flow[ope.key]) {
+          state = false;
+        }
+        console.log(auth);
+        console.log(ope.url);
+        console.log(state);
+        this.$emit('data-change', { auth: auth, url: ope.url, state: state });
+      },
+      forScheme(root) {
+        var roles = root.schemes;
+        if (undefined != roles) {
+          var config = undefined;
+          for (var role of roles) {
+            if (undefined != this.scheme && role.name == this.scheme) {
+              config = role;
+              break;
+            }
+          }
+          if (undefined != config) {
+            var content = config.steps;
+            if (undefined != content && '' != content) {
+              this.auths_step = JSON.parse(content);
+            }
+            content = config.opes;
+            if (undefined != content && '' != content) {
+              this.auths_ope = JSON.parse(content);
+            }
+            content = config.nexts;
+            if (undefined != content && '' != content) {
+              this.auths_next = JSON.parse(content);
+            }
+          }
+          this.auths_step = Object.assign({}, this.auths_step);
+          this.auths_ope = Object.assign({}, this.auths_ope);
+          this.auths_next = Object.assign({}, this.auths_next);
+        }
+      },
+      forStep(root) {
+        var steps = root.steps;
+        if (undefined != steps) {
+          var current_ope = undefined;
+          var current_step = undefined;
+          var index = 0;
+          for (var step of steps) {
+            if (undefined == step.name || null == step.name) {
+              this.$Message.error("节点【" + step.title + "】未配置name");
+              return;
+            }
+            if (undefined != this.scheme && '3' === this.auths_step[step.name]) {
+              continue;
+            }
+
+            var content = step.content;
+            var opes = [];
+            var opes_need = [];
+            if (undefined != content && '' != content.trim()) {
+              opes = JSON.parse(content);
+            }
+            for (var ope of opes) {
+              var key = ope.key;
+              if (undefined == ope.key || null == ope.key) {
+                this.$Message.error("操作【" + ope.title + "】未配置key");
+                return;
+              }
+              if (undefined != this.scheme && ('1' === this.auths_ope[key] || '2' === this.auths_ope[key])) {
+                opes_need.push(ope);
+              }
+
+            }
+            step.opes = opes_need;
+            var nexts = [];
+            var nexts_need = [];
+            content = step.nexts;
+
+            if (undefined != content && '' != content.trim()) {
+              nexts = JSON.parse(content);
+            }
+            for (var next of nexts) {
+              if (undefined != this.scheme && ('1' === this.auths_next[next.key] || '2' === this.auths_next[next.key])) {
+                nexts_need.push(next);
+              }
+            }
+            step.nexts = nexts_need;
+            this.steps.push(step);
+          }
+
+          this.state_load = true;
+          this.onStatusChange();
+        }
+
+      },
+      onRefersh() {
+        if (undefined == this.status) {
+          this.$Message.error("当前状态不存在");
+          return false;
+        }
+        if (undefined == this.status_flow) {
+          this.$Message.error("当前流程状态为空");
+          return false;
+        }
+        design_axios({
+          method: 'post',
+          url: 'api/design/flow/take.do',
+          data: {
+            flowName: this.flowName,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.forScheme(root);
+            this.forStep(root);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onStatusChange() {
+        for (var step of this.steps) {
+          if (this.status != step.name) {
+            continue;
+          }
+
+          var current_ope = undefined;
+          for (var ope of step.opes) {
+            var key = ope.key;
+            if (undefined == this.status_flow[key] || 0 === this.status_flow[key]) {
+              current_ope = ope;
+            }
+          }
+
+          if (undefined == current_ope) {
+            current_ope = step.opes[0];
+          }
+
+          this.go(current_ope, step);
+          var nexts = step.nexts;
+          if (undefined != nexts) {
+            var needs = [];
+            for (var obj of nexts) {
+              if ('2' === this.auths_next[obj.key]) {
+                needs.push(obj);
+              }
+            }
+            this.$emit("nexts-change", needs);
+          }
+
+        }
+      }
+    },
+    watch: {
+      flowName: {
+        handler(new_val, oldName) {
+          if (undefined != this.flowName && '' != this.flowName) {
+            this.onRefersh();
+          } else {
+            this.steps = [];
+          }
+        },
+        immediate: true
+      },
+      status: {
+        handler(new_val, oldName) {
+          if (undefined != this.flowName && '' != this.flowName) {
+            this.onStatusChange();
+          } else {
+            this.steps = [];
+          }
+        },
+        immediate: false
+      }
+    },
+  });
+</script>

@@ -1,0 +1,52 @@
+<template>
+
+  <div class="container-fluid">
+    <div class="pos-box bgw mtb15 flex justify-between" style="display: flex; justify-content: space-between;">
+      <div class="tab-list flex" id="cutMode">
+        <div class="tabs-item active" data-type="php">{{title}}</div>
+      </div>
+      <div class="authState" style="line-height: 45px;padding-right: 20px;">
+          <template class="layui-elem-quote" v-if="$slots.opes">
+            <slot name="opes"></slot>
+          </template>
+      </div>
+    </div>
+    <div class="site_table_view bgw mtb15 pd15 tab-view-box" style="min-height: 500px;" v-if="$slots.body">
+      <slot name="body"></slot>
+    </div>
+  </div>
+</template>
+<script>
+  Rap.define([], {
+    props: ['title'],
+    data: function () {
+      return {};
+    },
+    created: function () { },
+    methods: {},
+    init: function (query, search) { },
+    watch: {},
+  });
+</script>
+<style>
+  .flex {
+    width: 100%;
+    display: flex;
+    flex: 1 1;
+  }
+
+  .card_title {
+    /* background: url(/whole-manage/assets/img/line.png) no-repeat; */
+    background-size: cover;
+    border-radius: initial;
+    margin-left: 30px;
+    height: 8px;
+  }
+
+  .card-header {
+    border-bottom: none;
+    margin-left: 15px;
+    font-size: 16px;
+    color: #000000;
+  }
+</style>

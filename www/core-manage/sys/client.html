@@ -1,0 +1,175 @@
+<!-- 引用外部样式 -->
+<textarea>
+    <div class="row">
+        <div class="col-3">
+            <skin_card title="地域机构">
+                <template slot="body">
+                    <sys_org_tree ref="orgTree" @org-change="onOrgSelect" @region-change="onRegionChange">
+                    </sys_org_tree>
+                </template>
+            </skin_card>
+        </div>
+        <div class="col-9">
+            <skin_card title="人员管理">
+                <template slot="opes">
+                    <a href="javascript:void(0)" @click="onAdd">添加</a>
+                    <Divider type="vertical" />
+                    <a href="javascript:void(0)" @click="doBatRemove">批量删除</a>
+                    <Divider type="vertical" />
+                    <a href="javascript:void(0)" @click="onSync">同步</a>
+                </template>
+                <template slot="body">
+                    <components_design_searchform :source="search" @data-change="onSearch" name="client-search"></components_design_searchform>
+                    <components_design_table :params="params" :search="search"
+                        name="client-manage-all" ref="table">
+                        <template slot-scope="{ row, index }" slot="action">
+                            <i-button type="primary" size="small" style="margin-right: 5px" @click="onEdit(row)">修改
+                            </i-button>
+                            <Poptip transfer="true" confirm title="确定要删除所选警员?" @on-ok="doRemove(row)">
+                                <i-button type="error" size="small" @click="">删除</i-button>
+                            </Poptip>
+                        </template>
+                        <template slot="opes">
+                            <Poptip transfer="true" confirm title="确定要删除所选择会员?" @on-ok="doBatRemove">
+                                <i-button type="error" size="small">批量删除</i-button>
+                            </Poptip>
+                        </template>
+                    </components_design_table>
+                    <sys_client_info @data-change="onRefersh" ref="info"></sys_client_info>
+                </template>
+            </skin_card>
+            <sys_org_info ref="org" @data-change="$refs.orgTree.onRefersh()"></sys_org_info>
+            <sys_role_info ref="role" @data-change="$refs.roleTree.onRefersh()">
+            </sys_role_info>
+            <sys_user_info ref="user" @data-change="onRefersh"></sys_user_info>
+        </div>
+    </div>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define(['/sys/org/tree', '/sys/client/info', '/components/design/table'], {
+        data() {
+            return {
+                search: {
+                },
+                params: {
+                    level: -1
+                },
+            }
+        },
+        methods: {
+            onSync() {
+                onSend('api/sys/client/sync.do', {}, (root) => {
+                    if (200 == root.code) {
+                        var root = JSON.parse(root.content)
+                        if ('0' == root.code) {
+                            var datas = root.data.list;
+                            for(var data of datas){
+                                delete data.personPhoto
+                            }
+                            this.doSync(datas)
+                        }
+                    }
+                })
+            },
+            onSyncCard(persons){
+                onSend('api/sys/client/sync-card.do', {}, (root) => {
+                    if (200 == root.code) {
+                        var root = JSON.parse(root.content)
+                        if ('0' == root.code) {
+                            var datas = root.data.list;
+                            var map = {};
+                            for(var data of datas){
+                               map[data.personId] = data.cardNo;
+                            }
+                            for(var person of persons){
+                                person.cardNo = map[person.personId]
+                            }
+                            this.doSync(persons)
+                        }
+                    }
+                })
+            },
+            doSync(inputs) {
+                onSend('api/sys/client/dosync.do', { inputs: inputs, region: this.$store.state.user.properties.region }, (root) => {
+                    if (200 == root.code) {
+                        this.$Message.success("同步成功")
+                        this.onRefersh()
+                    }
+                })
+            },
+            onOrgSelect(event) {
+                this.params.region = '';
+                this.params.orgId = event.id;
+                this.params = Object.assign({}, this.params);
+            },
+            onRegionChange(event) {
+                if (undefined != event.code) {
+                    this.params.region = event.code;
+                    this.params.orgId = '';
+                } else {
+                    this.params.region = this.$store.state.user.properties.region
+                    this.params.orgId = '';
+                }
+                this.params = Object.assign({}, this.params);
+            },
+            doRemove(row) {
+                onSend('api/sys/client/delete.do', { id: row.id }, (root) => {
+                    if (200 == root.code) {
+                        this.$Message.success("删除成功");
+                        this.onRefersh();
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                })
+            },
+            doBatRemove() {
+                var datas = this.$refs.table.datas_selected;
+                var ids = [];
+                for (var item of datas) {
+                    ids.push(item.id);
+                }
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/client/bat-delete.do',
+                    data: {
+                        ids: ids
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (200 == root.code) {
+                        this.$Message.success("成功删除");
+                        this.onRefersh();
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                }).catch(err => {
+                    this.$Message.error('提取角色【' + rid + '】信息失败')
+                });
+            },
+            onAdd() {
+                this.$refs.info.onAdd();
+            },
+            onEdit(row) {
+                this.$refs.info.onShow(row.id);
+            },
+            onSearch(search) {
+                this.search = search;
+                this.search = Object.assign({}, this.search);
+            },
+            onRefersh() {
+                if (undefined != this.$refs.table) {
+                    this.$refs.table.onRefersh();
+                }
+            },
+        },
+        created() {
+            this.params.level = this.$store.state.user.properties.level;
+            this.params.region = this.$store.state.user.properties.region;
+            this.params = Object.assign({}, this.params)
+        },
+        init: function () {
+            // this.$root.fillTab('角色管理',this.router.hash);
+        }
+    })
+</script>

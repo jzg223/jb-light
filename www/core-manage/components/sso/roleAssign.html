@@ -1,0 +1,130 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Drawer :title="'角色【'+info.name+'】授权'" :closable="true" v-model="state_show" width="800">
+        <Tabs value="name1">
+            <TabPane label="界面资源" name="name1">
+                <components_sso_uiTree :app="app" :value="selecteds_ui" ref="ui"></components_sso_uiTree>
+                <Divider />
+                <Button @click="doSubmit('ui')" type="primary" >保存</Button>
+            </TabPane>
+            <TabPane label="权限资源" name="name2">
+                <components_sso_authSelect :app="app" :value="selecteds_auth" ref="auth"></components_sso_authSelect>
+                <Divider />
+                <Button @click="doSaveAuth()" type="primary" >保存</Button>
+            </TabPane>
+        </Tabs>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define(['uiTree', 'authSelect','appTree'], {
+        props:['app'],
+        data() {
+            return {
+                state_show: false,
+                rid: 0,
+                selecteds_ui: [],
+                selecteds_auth:[],
+                info: {}
+            }
+        },
+        methods: {
+            onShow(rid, info) {
+                this.rid = rid;
+                this.info = info;
+                
+
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/role/takeuis.do',
+                    data: {
+                        rid:this.rid,
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var datas = root.datas;
+                        this.selecteds_ui = [];
+                        if(undefined != datas){
+                            this.selecteds_ui = datas;
+                        }
+                        this.state_show = true;
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/role/takeauths.do',
+                    data: {
+                        rid:this.rid,
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var datas = root.datas;
+                        this.selecteds_auth = [];
+                        if(undefined != datas){
+                            this.selecteds_auth = datas;
+                        }
+                        this.state_show = true;
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                })
+            },
+            doSubmit(type) {
+                var uis = this.$refs.ui.onTake();
+                
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/role/assignui.do',
+                    data: {
+                        uis: uis,
+                        rid:this.rid,
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success('角色界面资源授权成功');
+
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            doSaveAuth(){
+                var auths = this.$refs.auth.onTake();
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/role/assignauth.do',
+                    data: {
+                        auths: auths,
+                        rid:this.rid,
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success('角色权限资源授权成功');
+
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            onInit() {
+
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

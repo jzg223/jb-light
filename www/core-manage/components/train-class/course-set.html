@@ -1,0 +1,138 @@
+<textarea>
+  <div>
+    <components_design_table ref="table" v-if="params.tid" name="train-class-course-manage" :params="params">
+      <template slot="opes">
+        <Button v-if="'2'==auth" type="primary"  @click="$refs.form.onShow()">添加</Button>
+        <Button v-if="'2'==auth" type="primary"  @click="onFinish">确认</Button>
+      </template>
+      <template slot-scope="{ row, index }" slot="action">
+        <a href="javascript:void(0)" @click="onShow(row)">查看</a>
+        <Divider type="vertical" />
+        <a v-if="'2'==auth" href="javascript:;" @click="onEdit(row)">编辑</a>
+        <Divider type="vertical" />
+        <Poptip v-if="'2'==auth" confirm transfer="true" title="确定要删除?" @on-ok="doRemove(row)">
+          <a href="javascript:void(0)">删除</a>
+        </Poptip>
+      </template>
+    </components_design_table>
+    <components_train-class_course_info v-if="params.tid" @data-change="onRefersh" :tid="params.tid" ref="form"></components_train-class_course_info>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/design/table','/components/train-class/course/info'], {
+    props: ['id', 'classInfo','ope', 'auth','status_flow'],
+    mixins: [mixin_course],
+    data: function () {
+      return {
+        params:{}
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    computed: {
+      canWrite(){
+        if('1'!=auth){
+          return false;
+        }
+      }
+    },
+    methods: {
+      onShow(row) {
+        console.log(row);
+      },
+
+      onEdit(row){
+        this.$refs.form.onShow(row);
+      },
+      doRemove(item) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-course/delete.do',
+          data: {
+            id: item.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('删除成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onFinish() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-course.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功执行');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onRefersh() {
+        var table = this.$refs.table;
+        if(undefined!=table){
+          table.onRefersh();
+        }
+      },
+      takeCourseFromEdu(ids) {
+        edu_axios({
+          method: 'post',
+          url: 'api/manage/course/list-ids.do',
+          data: {
+            ids: ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.courses = root.datas;
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.params.tid = this.id;
+            this.params = Object.assign({},this.params);
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .course-picture {
+    width: 230px;
+    height: 130px;
+  }
+
+  .sort {
+    padding-top: 50px;
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+</style>

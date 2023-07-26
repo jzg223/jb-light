@@ -1,0 +1,281 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <!-- <div class="panel-heading">报道审核</div> -->
+    <div class="panel-body" v-if="'offline'==classInfo.mode">
+      <Table ref="table" border highlight-row :columns="columns" :data="datas" @on-selection-change="onSelectedChange">
+        <template slot-scope="{ row, index }" slot="action">
+
+          <a href="javascript:;" v-if="1==row.status" @click="onAgree(row)">通过</a>
+          <a href="javascript:;" v-if="1==row.status" @click="onDeny(row)">驳回</a>
+        </template>
+        <template slot-scope="{ row, index }" slot="status">
+          {{row.status | status}}
+        </template>
+        <template slot-scope="{ row, index }" slot="createdTime">
+          {{row.createdTime | dateTime}}
+        </template>
+      </Table>
+      <Row style="padding-top:5px;">
+        <Col span="12"  style="padding-top:20px">
+          <Button type="primary" @click="onRefersh">刷新</Button>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定要通过?" @on-ok="onBatAgree">
+            <Button type="primary">批量通过</Button>
+          </Poptip>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定要驳回?" @on-ok="onBatDeny">
+            <Button type="primary">批量驳回</Button>
+          </Poptip>
+          <Button type="primary" @click="onFinish" v-if="'view'!=ope">完成设置</Button>
+          </Col>
+        <Col span="12"  style="text-align: right;">
+        <Page :total="pager.total" :current="pager.current" :page-size="pager.size" show-total show-elevator show-sizer
+          style="margin-top: 20px;" @on-change="pageChange" @on-page-size-change="pageSizeChange" />
+        </Col>
+      </Row>
+      <view_train-class_import-student ref="import"></view_train-class_import-student>
+    </div>
+    <div class="panel-body" v-if="'online'==classInfo.mode">
+      <Alert type="success">线上模型无需报道审核</Alert>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['id', 'classInfo', 'ope'],
+    mixins: [mixin_trainclass],
+    data: function () {
+      return {
+        datas: [],
+        datas_selected: [],
+        pager: {
+          total: 0,
+          size: 10,
+          current: 1
+        },
+        columns: [{
+          type: 'selection',
+          width: 60,
+          align: 'center'
+        },
+        {
+          'title': '编号',
+          'key': 'id',
+          'sortable': true
+        },
+        {
+          'title': '姓名',
+          'key': 'xm',
+        },
+        {
+          'title': '所在单位',
+          'key': 'dw',
+        },
+        {
+          'title': '警号',
+          'key': 'jh',
+        },
+        {
+          'title': '身份证',
+          'key': 'idcard',
+        },
+        {
+          'title': '报名时间',
+          'slot': 'createdTime',
+        },
+        {
+          'title': '报名状态',
+          'slot': 'status',
+        },
+        {
+          'title': '操作',
+          slot: 'action',
+        }]
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onImport() {
+        this.$refs.import.onShow(this.id);
+      },
+      doSubmit(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/update.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('修改成功');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onFinish(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-sign.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('完成设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onAgree(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/agree.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onDeny(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/deny.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onSelectedChange(values) {
+        this.datas_selected = values;
+      },
+      onBatAgree() {
+        if(0 == this.datas_selected.length){
+          this.$Message.warning('未选择数据');
+          return;
+        }
+        var ids = [];
+        for(var item of this.datas_selected){
+          ids.push(item.id);
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/bat-agree.do',
+          data: {
+            ids:ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('操作成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onBatDeny() {
+        if(0 == this.datas_selected.length){
+          this.$Message.warning('未选择数据');
+          return;
+        }
+        var ids = [];
+        for(var item of this.datas_selected){
+          ids.push(item.id);
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/bat-deny.do',
+          data: {
+            ids:ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('操作成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      
+      onRefersh() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/list.do',
+          data: {
+            classId: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.datas = root.datas;
+            if (undefined != root.datas) {
+            }
+            this.pager.total = root.total;
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      pageChange(current) {
+        this.pager.current = current;
+        this.onRefersh();
+      },
+      pageSizeChange(pageSize) {
+        this.pager.size = pageSize;
+        this.onRefersh();
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.onRefersh();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

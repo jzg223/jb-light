@@ -1,0 +1,159 @@
+<textarea>
+  <Form ref="info" :model="info" :rules="rules" :label-width="labelwidth" :show-message="false">
+    <template v-for="row of rows">
+      <Row>
+      <template v-for="cell of row">
+        <Col :span="24/row.length">
+          <FormItem :label="cell.title" :prop="cell.name" show-message="false">
+            <span>{{info[cell.titleField]?info[cell.titleField]:info[cell.name]}}</span>
+          </FormItem>
+        </Col>
+      </template>
+      </Row>
+    </template>
+
+    <slot name='submit'></slot>
+  </Form>
+</textarea>
+<script>
+  Rap.define(['import'], {
+    props: ['name', 'rules', 'source'],
+    data: function () {
+      return {
+        labelwidth: 180,
+        info: {
+        },
+        rows: [],
+        config: {},
+        extras:{}, // 附加属性
+        state:0, // 状态,0为新建,1为修改
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onSelectChange(json) {
+        if(undefined != json.field){
+          this.setItem(json.field, json.value + "");
+        }
+      },
+      onExtraChange(json){
+        this.extras[json.field] = json.value;
+        this.extras = Object.assign({}, this.extras);
+      },
+      setItem(key, value) {
+        this.info[key] = value;
+        this.info = Object.assign({}, this.info);
+      },
+      async take() {
+        if (undefined == this.rules) {
+          return this.info;
+        }
+        var state = false;
+        await this.$refs['info'].validate((valid) => {
+          if (valid) {
+            state = true;
+          } else {
+            this.$Message.warning('部分项为空');
+            state = false;
+          }
+        });
+        if (true == state) {
+          var info = Object.assign({}, this.info);
+          return info;
+        } else {
+          return false;
+        }
+
+      },
+      onInit() {
+        design_axios({
+          method: 'post',
+          url: 'api/design/form/take.do',
+          data: {
+            name: this.name,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var config = root.config;
+            this.config = root.config;
+            this.config = Object.assign({}, this.config);
+            var content = config.content;
+            if (undefined != content && null != content && '' != content) {
+              var opes = JSON.parse(content);
+              this.rows = opes;
+            }
+            if(undefined != config.labelwidth && 0!= config.labelwidth){
+              this.labelwidth = config.labelwidth;
+            }
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      name: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      },
+      source: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            for(var key in this.source){
+              this.info[key] = this.source[key];
+            }
+            this.info = Object.assign({}, this.info);
+            if(undefined == oldName){
+              var length = 0;
+              for(var key in new_val){
+                length++;
+              }
+              if(0 == length){
+                this.state = 0;
+              }else{
+                this.state = 1;
+              }
+            }
+            delete this.info._rowKey;
+            delete this.info._index;
+          } else {
+            this.info = {};
+          }
+        },
+        immediate: true
+      },
+      info: {
+        handler(new_val, oldName) {
+          var callback = this.config.changeCallBack;
+          if (undefined != callback && '' != callback) {
+            if (undefined != new_val) {
+              eval(callback);
+            } else {
+            }
+          }
+          this.$emit('data-change',this.info);
+
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

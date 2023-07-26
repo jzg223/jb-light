@@ -1,0 +1,110 @@
+<template>
+    <div id="digital-flop">
+        <div class="digital-flop-item" v-for="item in datas" :key="item.title">
+            <div class="digital-flop-title">{{ item.title }}</div>
+            <div class="digital-flop">
+                <dv-digital-flop :config="item.number" style="width:80px;height:50px;" ></dv-digital-flop>
+                <div class="unit">{{ item.unit }}</div>
+            </div>
+        </div>
+
+        <dv-decoration-10 ></dv-decoration-10>
+    </div>
+</template>
+<script>
+    Rap.define([], {
+        props: [],
+        data() {
+            return {
+                datas:[]
+            }
+        },
+        mounted() {
+            this.onInit();
+        },
+        methods: {
+            onInit() {
+                // onSend('api/tj/rank/count.do', {}, (root) => {
+                //     if (200 == root.code) {
+                //         this.types = root.types;
+                //         var datas = root.datas;
+                //         var map = [];
+                //         for (var data of root.datas) {
+                //             map[data.name] = data.value;
+                //         }
+                //         for (var type of root.types) {
+                //             var value = map[type.dd_code];
+                //             if(undefined == value){
+                //                 value = 0;
+                //             }
+                //             var item = {
+                //                 title: type.dd_name,
+                //                 number: {
+                //                     number: value,
+                //                     // content: '{nt}',
+                //                     textAlign: 'center',
+                //                     style: {
+                //                         fill: '#4d99fc',
+                //                         fontWeight: 'bold'
+                //                     }
+                //                 },
+                //                 // unit: '人'
+                //             }
+                //             this.datas.push(item);
+                //         }
+                //         this.datas = Object.assign([],this.datas);
+                //     }
+                // })
+            },
+            
+        },
+    })
+</script>
+<style>
+    #digital-flop {
+        position: relative;
+        height: 15%;
+        flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: rgba(6, 30, 93, 0.5);
+    }
+
+    .dv-decoration-10 {
+        position: absolute;
+        width: 100%;
+        /* left: 2.5%; */
+        height: 5px !important;
+        bottom: 0px;
+        top: 50px;
+    }
+
+    .digital-flop-item {
+        width: 7.5%;
+        height: 80%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border-left: 3px solid rgb(6, 30, 93);
+        border-right: 3px solid rgb(6, 30, 93);
+    }
+
+    .digital-flop-title {
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+
+    .digital-flop {
+        display: flex;
+    }
+
+    .unit {
+        margin-left: 0px;
+        display: flex;
+        align-items: flex-end;
+        box-sizing: border-box;
+        padding-bottom: 13px;
+    }
+</style>

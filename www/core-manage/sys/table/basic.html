@@ -1,0 +1,119 @@
+<textarea>
+    <div class="panel panel-default" role="classroom-manage-base">
+      <!-- <div class="panel-heading">基础设置</div> -->
+      <div class="panel-body">
+        <Form ref="info" :model="info" :rules="rules" :label-width="180" >
+          <FormItem label="名称" prop="name">
+            <Input type="text" v-model="info.name" placeholder="" />
+          </FormItem>
+          <FormItem label="标题" prop="title">
+            <Input type="text" v-model="info.title" placeholder="" />
+          </FormItem>
+          <FormItem label="是否分页" prop="pager">
+              <i-switch v-model="info.pager" true-value="1" false-value="0" />
+          </FormItem>
+          <FormItem label="每页记录数" prop="pagesize">
+              <Input type="number" v-model="info.pagesize" placeholder="" />
+          </FormItem>
+          <FormItem label="后端地址" prop="url">
+              <Input type="text" v-model="info.url" placeholder="" />
+          </FormItem>
+          
+          <FormItem>
+            <Button type="primary" @click="doSubmit('info')">确认</Button>
+          </FormItem>
+        </Form>
+
+        <Poptip confirm title="确定要删除该表单?" @on-ok="doRemove">
+            <Button type="primary" >删除</Button>
+          </Poptip>
+      </div>
+    </div>
+  </textarea>
+  <script>
+    Rap.define([], {
+      props: ['tid', 'tinfo', 'ope'],
+      data: function () {
+        return {
+          info: {
+          },
+          rules: {
+            name: [
+              { required: true, message: '请输入名称', trigger: 'blur' }
+            ],
+          },
+        }
+      },
+      created: function () {
+        this.onInit();
+      },
+      mounted() {
+      },
+      methods: {
+        doRemove(){
+          instance_axios({
+                method: 'post',
+                url: 'api/sys/table/delete.do',
+                data: {
+                  id: this.tid,
+                }
+              }).then(res => {
+                let root = res.data
+                if (root.code === 200) {
+                  this.$Message.success('成功删除');
+                  history.go(-1);
+                  // this.getRoleListDataHandle()
+                } else {
+                  this.$Message.error(root.message)
+                }
+              })
+        },
+        doSubmit(name) {
+          this.$refs[name].validate((valid) => {
+            if (valid) {
+              var info = Object.assign({}, this.info);
+              instance_axios({
+                method: 'post',
+                url: 'api/sys/table/update.do',
+                data: {
+                  info: info,
+                  id: this.tid,
+                }
+              }).then(res => {
+                let root = res.data
+                if (root.code === 200) {
+                  this.$Message.success('成功设置');
+                  this.$emit('data-change', {});
+                  // this.getRoleListDataHandle()
+                } else {
+                  this.$Message.error(root.message)
+                }
+              })
+            }else{
+              this.$Message.warning('部分项为空');
+            }
+          });
+  
+        },
+        onInit() {
+        },
+      },
+      init: function (query, search) {
+      },
+      watch: {
+        tinfo: {
+          handler(new_val, oldName) {
+            if (0 != new_val) {
+              this.info = Object.assign({}, int2str(this.tinfo));
+            }
+          },
+          immediate: true
+        }
+      }
+    })
+  </script>
+  <style>
+    .ivu-form-item {
+      margin-bottom: 10px !important;
+    }
+  </style>

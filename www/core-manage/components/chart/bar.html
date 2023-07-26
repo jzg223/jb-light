@@ -1,0 +1,68 @@
+<template>
+</template>
+<script>
+    Rap.define([], {
+        props: ['divid', 'title', 'names', 'values'],
+        data() {
+            return {
+            }
+        },
+        mounted() {
+        },
+        watch: {
+            values: {
+                handler(new_val, oldName) {
+                    if (undefined != this.values && this.values.length > 0) {
+                        this.onDraw();
+                    }
+                },
+                immediate: true
+            },
+        },
+        methods: {
+            onDraw() {
+                option = {
+                    tooltip: {
+                        show:true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: this.names,
+                        // axisLabel:{color :'#fff'}
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: this.names,
+                        axisLabel: {
+                            interval: 0,
+                            color:'#fff',
+                            rotate: 90//角度顺时针计算的
+                        }
+                    },
+                    grid:{
+                        top:10,
+                        left:50,
+                        bottom:60
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel:{color :'#fff'}
+                    },
+                    series: [
+                        {
+                            data: this.values,
+                            type: 'bar',
+                            showBackground: true,
+                            backgroundStyle: {
+                                color: 'rgba(180, 180, 180, 0.2)'
+                            }
+                        }
+                    ]
+                };
+                var myChart = echarts.init(document.getElementById(this.divid));
+                myChart.setOption(option);
+
+            }
+        },
+    })
+</script>

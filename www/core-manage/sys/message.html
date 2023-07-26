@@ -1,0 +1,132 @@
+<textarea>
+    <div class="row">
+      <div class="col-4">
+        <div class="card">
+          <div class="card-body">
+  
+            <div class="email-list" v-if="datas.length>0">
+              <ul class="list-unstyled">
+                <li v-for="(item,x) of datas" :key="x"><a href="javascript:void(0)" @click="onSelect(x)" :class="{'active':x==current}">
+                    <div class="email-list-item">
+                      <div class="email-author"><img src="../../assets/images/avatars/profile-image.png" alt=""><span
+                          class="author-name">{{item.fromUname}}</span><span class="email-date"><Time :time="item.createdTime*1000" ></Time></span></div>
+                      <div class="email-info"><span class="email-subject">{{item.title}}
+                        </span><span class="email-text">{{item.content}} </span>
+                      </div>
+                    </div>
+                  </a></li>
+              </ul>
+            </div>
+            <Alert show-icon v-else>
+              暂无消息
+            </Alert>
+  
+            <components_design_datatable name="message-my" v-if="params.uid" :params="params" :search="search" @datas-change="onChange">
+            </components_design_datatable>
+  
+          </div>
+        </div>
+      </div>
+      <div class="col-8">
+        <skin_card title="消息管理">
+          <template slot="opes">
+            <a class="btn btn-success btn-sm" href="javascript:;" @click="$refs.info.onReply()">发消息</a>
+            <a class="btn btn-success btn-sm" href="javascript:;" @click="$refs.admin.onReply()">发送管理消息</a>
+          </template>
+          <template slot="body">
+            <div class="open-email-content" v-if="message.id">
+              <div class="mail-header">
+                <div class="mail-title">
+                  <h4>{{message.title}}</h4>
+                </div>
+                <div class="mail-actions"><button type="button" class="btn btn-secondary" @click="$refs.info.onReply(message.fromUname,message.fromUid)">回复</button></div>
+                <div class="mail-info">
+                  <div class="mail-author"><img src="../../assets/images/avatars/profile-image.png" alt="">
+                    <div class="mail-author-info"><span class="mail-author-name">{{message.fromUser}}</span><span
+                        class="mail-author-address"></span></div>
+                  </div>
+                  <div class="mail-other-info"><span><Time :time="message.createdTime*1000"></span></div>
+                </div>
+              </div>
+              <div class="mail-text">
+                <p>{{message.content}}</p>
+              </div>
+              
+            </div>
+            <div v-else style="min-height: 300px;"></div>
+          </template>
+        </skin_card>
+      </div>
+      <sys_message_info ref="info"></sys_message_info>
+      <sys_message_admin ref="admin"></sys_message_admin>
+    </div>
+  </textarea>
+  <script>
+  
+    Rap.define(['/components/design/datatable','/sys/message/info','/sys/message/admin'], {
+      props: {
+      },
+      data: function () {
+        return {
+          params: {}, search: {},
+          current: 0,
+          message:{},
+          datas:[]
+        }
+      },
+      created: function () {
+        this.params.uid = this.$store.state.user.uid;
+        this.params = Object.assign({}, this.params)
+      },
+      methods: {
+        onChange(datas){
+          this.datas = datas;
+          this.datas = Object.assign([],this.datas);
+          this.onSelect(0)
+        },
+        onSelect(x){
+          this.current = x;
+          this.message = this.datas[x];
+          this.message = Object.assign({},this.message);
+          onSend('api/out/message/read.do',{id:this.message.id},(root)=>{
+              if(200==root.code){
+              }else{
+
+              }
+          })
+        },
+        async doSubmit(name) {
+          var json = await this.$refs.form.take();
+          if (false === json) {
+            return;
+          }
+  
+          instance_axios({
+            method: 'post',
+            url: 'api/manage/personal/setpass.do',
+            data: {
+              oldpass: md5(json.password),
+              newpass: md5(json.newpass)
+            }
+          }).then(res => {
+            let root = res.data
+            if (root.code === 200) {
+              this.$Message.success('成功设置');
+              this.$emit('data-change', {});
+              // this.getRoleListDataHandle()
+            } else {
+              this.$Message.error(root.message)
+            }
+          })
+  
+        },
+        onInit() {
+  
+        },
+      },
+      init: function (query, search) {
+      },
+      watch: {
+      }
+    })
+  </script>

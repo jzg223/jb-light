@@ -1,0 +1,47 @@
+<textarea>
+    <!-- 角色选择组件 -->
+    <div>
+        <Select v-model="selecteds" multiple @on-change="onSelect">
+            <Option v-for="item in roles" :value="item.name" :key="item.name">{{ item.title }}</Option>
+        </Select>
+    </div>
+    
+</textarea>
+<script>
+    Rap.define([], {
+        props:['roles','source'],
+        data() {
+            return {
+                selecteds:[]
+            }
+        },
+        methods: {
+            onSelect(nodearray) {
+                if (nodearray.length > 0) {
+                    this.$emit("select-change", JSON.stringify(this.selecteds)+' ');
+                } else {
+                    this.$emit("select-change", '[]');
+                }
+            }
+        },
+        created() {
+        },
+        watch:{
+            source: {
+                handler(new_val, oldName) {
+                    if (undefined != this.source && '' != this.source) {
+                    var arr = JSON.parse(this.source);
+                    this.selecteds = Object.assign([], arr);
+                } else {
+                    this.selecteds = Object.assign([], []);
+                }
+                },
+                immediate: true
+            },
+            
+        },
+        init: function () {
+        }
+    })
+
+</script>

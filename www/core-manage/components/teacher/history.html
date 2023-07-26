@@ -1,0 +1,217 @@
+<textarea>
+    <Modal v-model="state_show" width="800"  title="修改履历" @on-visible-change="ModelSaveclose">
+        <table class="table table-hover" width="100%" style="margin-bottom: 30px;">
+            <tr>
+                <th class="th" width="50" style="padding: 5px 10px !important;">序号</th>
+                <th class="th">培训班</th>
+                <th class="th">授课日期</th>
+                <th class="th">授课内容</th>
+                <th class="th" width="83" style="padding: 5px 10px !important;">操作</th>
+            </tr>
+            <tr v-for="(item,x) of datas" :key="x" :class="{currentItem:activited == x}">
+                <td class="td">{{x+1}}</td>
+                <td class="td" width="240">{{item.classroomName}}</td>
+                <td class="td" width="180">{{item.teachingDate}}</td>
+                <td class="td" width="240">{{item.content}}</td>
+                <td class="td" style="padding: 5px 10px !important;">
+                    <a href="javascript:;" @click="onEdit(x)">编辑</a>
+                    <Poptip confirm title="确定要删除?" @on-ok="doRemove(x)">
+                        <a href="javascript:;">删除</a>
+                    </Poptip>
+                </td>
+            </tr>
+        </table>
+        <span v-show="edit_show">编辑第 {{activited+1}} 条内容</span>
+        <Form  :label-width="180" ref="init" :model="init" :rules="rules">
+            <Row>
+                <Col span="24">
+                  <FormItem label="培训班" prop="classroomName">
+                    <Input type="text" placeholder="" v-model="init.classroomName"/>
+                  </FormItem>
+                </Col>
+            </Row>
+            <Row>
+                <Col span="24">
+                  <FormItem label="授课日期" prop="teachingDate">
+                    <DatePicker type="date" v-model="init.teachingDate" @on-change="onDateChange"></DatePicker>
+                  </FormItem>
+                </Col>
+            </Row>
+            <Row>
+              <Col span="24">
+                <FormItem label="授课内容" prop="content">
+                  <Input type="text" placeholder="" v-model="init.content"/>
+                </FormItem>
+              </Col>
+            </Row>
+        </Form>
+        <div slot="footer">
+            <Button type="primary" @click="doSubmit">提交</Button>
+          </div>
+    </Modal>
+</textarea>
+<script>
+    Rap.define([], {
+        data: function () {
+            return {
+                state_show: false,
+                edit_show: false,
+                info: {},
+                id: 0,
+                datas: [],
+                init: {},
+                rules: {},
+                activited: null
+            };
+        },
+        created: function () {},
+        mounted() {},
+        methods: {
+            onEdit(x) {
+                this.activited = x;
+                this.edit_show = true;
+                this.init = this.datas[x]
+                this.onRefresh();
+
+                // this.datas[x].teachingDate = 
+            },
+            doRemove(x) {
+                var deleteId = this.datas[x].id;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/teacher/delete-his.do',
+                    data: {
+                        id: deleteId,
+                        tid: this.id,
+                    },
+                })
+                .then(res =>{
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success('删除成功');
+                        this.onRefresh();
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                })
+            },
+            doSubmit() {
+                if(this.edit_show) {
+                    this.doUpdate();
+                    return
+                }
+                console.log(this.init);
+                var info = this.init;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/teacher/create-his.do',
+                    data: {
+                        tid: this.id,
+                        info: info
+                    },
+                })
+                .then(res =>{
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success('添加成功');
+                        this.onRefresh();
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                })
+            },
+            doUpdate() {
+                console.log('更新');
+                var info = this.init;
+                var updateId = this.datas[this.activited].id;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/teacher/update-his.do',
+                    data: {
+                        id: updateId,
+                        info: info
+                    },
+                })
+                .then(res =>{
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success('更新成功');
+                        this.onRefresh();
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                    this.init = {};
+                    this.edit_show = false;
+                    this.activited = null;
+                })
+            },
+            onShow(item) {
+                this.state_show = true;
+                if (undefined != item) {
+                    this.info = Object.assign({}, item);
+                    this.id = item.id;
+                    this.orgId_source = this.info.orgId;
+                } else {
+                    this.info = Object.assign({}, {});
+                    this.id = 0;
+                }
+               this.onRefresh();
+            },
+            onDateChange(date) {
+                this.init.teachingDate = date;
+            },
+            onRefresh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/teacher/list-his.do',
+                    data: {
+                        tid: this.id
+                    },
+                })
+                .then(res =>{
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.datas = root.datas;
+                    } else {
+                        this.$Message.error(root.message);
+                    }
+                })
+            },
+            ModelSaveclose() {
+                this.init = {};
+                this.edit_show = false;
+                this.activited = null;
+            }
+        },
+        init: function (query, search) {},
+    });
+</script>
+<style>
+    .th {
+        font-weight: bold;
+    }
+
+    .currentItem {
+        background-color: #57a3f3;
+        color: #fff;
+    }
+
+    .currentItem a {
+        color: #fff;
+    }
+
+    .td {
+        overflow: hidden;
+        overflow: hidden;
+        word-break: keep-all;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+
+    .td,
+    .th {
+        border: 1px solid #e4eaec;
+        padding: 10px;
+        max-width: 240px;
+    }
+</style>

@@ -1,0 +1,196 @@
+<textarea>
+    <div>
+            <Upload :multiple="1==0"  :before-upload="onBeforeUpload" type="drag" :name="'upload'" :on-success="onImportSuccess">
+                <div style="padding: 20px 0">
+                    <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"></Icon>
+                    <p>点击或拖动文件上传</p>
+                </div>
+            </Upload>
+
+            <Tabs ref="t1">
+                <Tab-pane label="可导入" >
+                    <div style="height:300px">
+                        <table>
+                            <tr v-for="(row,i) of infos_ready" :key="i">
+                                <td class="td" v-for="(item,x) of row" :key="x">{{item}}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </Tab-pane>
+                <Tab-pane label="不可导入" >
+                        <div style="overflow: scroll;height:300px;">
+                                <table>
+                                    <tr v-for="(row,i) of infos_error" :key="i">
+                                        <td class="error" v-for="(item,x) of row" :key="x">{{item}}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                </Tab-pane>
+            </Tabs>
+    </div>
+    
+</textarea>
+<script>
+    Rap.define([], {
+        props: [
+            'rowCheck', 'startRow'
+        ],
+        data() {
+            return {
+                infos_ready: [], // 已准备好数据
+                infos_error: [], // 错误数据
+                file: undefined, // 当前上传file
+            }
+        },
+        methods: {
+            onImportSuccess(res) {
+                if (200 == res.code) {
+                    this.$Modal.success({
+                        title: "导入数据",
+                        content: '成功'
+                    });
+                } else {
+                    this.$Modal.error({
+                        title: "导入数据",
+                        content: res.message
+                    });
+                }
+            },
+            csv2table(csv, array) {
+                var html = '<table border=1 class="table">';
+                var rows = csv.split('\n');
+                rows.pop(); // 最后一行没用的
+                rows.forEach(function (row, idx) {
+                    var columns = row.split(',');
+                    columns.unshift(idx + 1); // 添加行索引
+                    if (idx == 0) { // 添加列索引
+                        html += '<tr>';
+                        for (var i = 0; i < columns.length; i++) {
+                            html += '<th width="80px" class="th">' + (i == 0 ? '' : String.fromCharCode(65 + i - 1)) + '</th>';
+                        }
+                        html += '</tr>';
+                    }
+                    html += '<tr>';
+                    var index_column = 0;
+
+                    var arr = [];
+                    columns.forEach(function (column) {
+                        if (0 == index_column) {
+                            html += '<th class="th">' + column + '</th>';
+                        } else {
+                            // json[(1 + idx) + '-' + index_column] = column;
+                            arr.push(column.trim());
+                            html += '<td class="td">' + column + '</td>';
+                        }
+                        index_column++;
+                    });
+                    array.push(arr);
+                    html += '</tr>';
+                });
+                html += '</table>';
+                return html;
+            },
+            readXls(file) {
+                this.$Spin.show({
+                    render: (h) => {
+                        return h('div', [
+                            h('Icon', {
+                                'class': 'demo-spin-icon-load',
+                                props: {
+                                    type: 'ios-loading',
+                                    size: 18
+                                }
+                            }),
+                            h('div', '正在读取excel数据')
+                        ])
+                    }
+                });
+
+                var _this = this;
+
+                var startRow = this.startRow;
+                if (undefined == startRow) {
+                    this.startRow = 1;
+                }
+                var instance = this;
+                instance.infos = [];
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var data = e.target.result;
+                    // console.info(data);
+                    var workbook = XLSX.read(data, { type: 'binary' });
+                    // if (callback) callback(workbook);
+                    var sheetNames = workbook.SheetNames; // 工作表名称集合
+                    var datas_sheet = {};
+                    for (var x = 0; x < sheetNames.length; x++) {
+                        var worksheet = workbook.Sheets[sheetNames[x]]; // 这里我们只读取第一张sheet
+                        var csv = XLSX.utils.sheet_to_csv(worksheet);
+                        var array = [];
+                        var html = instance.csv2table(csv, array);
+                        for (var index = 0; index < array.length; index++) {
+                            var info = array[index];
+                            if (index >= startRow) {
+                                if (undefined != _this.rowCheck) {
+                                    var result = _this.rowCheck(info);
+                                    if (undefined != result && '' != result) {
+                                        info.push(result);
+                                        _this.infos_error.push(info);
+                                    } else {
+                                        _this.infos_ready.push(info);
+                                    }
+                                }
+                            } else {
+
+                                _this.infos_ready.push(info);
+                                var info_copy = Object.assign([], info);
+                                info_copy.push('原因');
+                                _this.infos_error.push(info_copy);
+                            }
+                        }
+                        break;
+                    }
+                    instance.$Spin.hide();
+                    instance.$emit('on-data-change', _this.infos_ready );
+                };
+                reader.readAsBinaryString(file);
+            },
+            onBeforeUpload(file) {
+                this.file = file;
+                this.infos_error = [];
+                this.infos_ready = [];
+                this.readXls(file);
+                return false;
+            }
+            , onReload() {
+                this.infos_error = [];
+                this.infos_ready = [];
+                if (undefined != this.file) {
+                    this.readXls(this.file);
+                }
+
+            }
+        },
+        created() {
+            Rap.insertScript('assets/libs/xlsx.full.min.js').then(res => { });
+            Rap.insertScript('assets/libs/xlsx.js').then(res => { });
+            Rap.insertScript('assets/libs/xlsx.core.min.js').then(res => { });
+        }
+    });
+</script>
+<style>
+    .td {
+        border: 1px solid #ccc;
+        word-break: break-all;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .error {
+        border: 1px solid #ccc;
+        word-break: break-all;
+        min-width: 50px;
+        background: yellow;
+        color: red;
+        text-align: center;
+    }
+</style>

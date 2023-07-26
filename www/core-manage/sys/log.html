@@ -1,0 +1,140 @@
+<!-- 引用外部样式 -->
+<textarea>
+    <skin_card title="日志查询">
+        <template slot="opes">
+            <!-- <a href="javascript:void(0)" @click="onAdd">添加</a>
+            <Divider type="vertical" />
+            <a href="javascript:void(0)" @click="doBatRemove">批量删除</a> -->
+        </template>
+        <template slot="body">
+            <i-form :model="search" inline :label-width="140">
+                <FormItem prop="path" label="路径:">
+                    <i-input type="text" v-model="search.path" placeholder="请输入路径" />
+                </FormItem>
+                <FormItem prop="input" label="输入:">
+                    <i-input type="text" v-model="search.input" placeholder="" />
+                </FormItem>
+                <FormItem prop="output" label="输出:"">
+                    <i-input type="text" v-model="search.output" placeholder="" />
+                </FormItem>
+                <FormItem>
+                    <i-button type="primary" @click="onSearch">搜索</i-button >
+                    <!-- <i-button type="default" @click="" style="margin-left: 20px">重置</i-button> -->
+                </FormItem>
+            </i-form>
+            <components_table :columns="columns" :config="config" ref="table">
+                <template slot-scope="{ row, index }" slot="action">
+                    <i-button type="primary" size="small" style="margin-right: 5px" @click="onView(row)">查看</i-button>
+                </template>
+                <template slot-scope="{ row, index }" slot="input">
+                    {{row.input?row.input.length:0}}
+                </template>
+                <template slot-scope="{ row, index }" slot="output">
+                    {{row.output?row.output.length:0}}
+                </template>
+            </components_table>
+            <sys_log_view ref="view"></sys_log_view>
+        </template>
+    </skin_card>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define(['/sys/log/view'], {
+        data() {
+            return {
+                config: {
+                    url: 'api/sys/log/list.do',
+                },
+                search: {
+                    path: '',
+                    input: '',
+                    output:''
+                },
+                columns: [
+                    {
+                        type: 'selection',
+                        width: 60,
+                        align: 'center'
+                    },
+                    {
+                        'title': '编号',
+                        'key': 'id',
+                        width: 90,
+                    },
+                    {
+                        'title': '路径',
+                        'key': 'url',
+                        width: 360,
+                    }, 
+                    {
+                        'title': '账号',
+                        'key': 'creator',
+                        width: 100,
+                    }, 
+                    {
+                        'title': '输入',
+                        'slot': 'input',
+                        width: 160,
+                    }, {
+                        'title': '输出',
+                        'slot': 'output',
+                        width: 160,
+                    }, {
+                        'title': '时间',
+                        'key': 'createTime',
+                        slot:'dateTime',
+                        width: 180,
+                    }, 
+                    {
+                        title: '操作',
+                        slot: 'action',
+                        width: 150,
+                        align: 'center',
+                        fixed: "right"
+                    }
+                ],
+            }
+        },
+        methods: {
+            onView(row){
+                this.$refs.view.onShow(row);
+            },
+            onSearch() {
+
+            },
+            onRefersh() {
+                if (undefined != this.$refs.table) {
+                    this.$refs.table.onRefersh();
+                }
+            },
+            onBatRemove() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/role/bat-remove.do',
+                    data: {
+                        pageNum: this.userPage.current,
+                        pageSize: this.userPage.size,
+                        search: this.formSearch
+                    }
+                }).then(res => {
+                    console.info(res)
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.datas = data.datas
+                        this.userPage.total = data.total
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+        },
+        created() {
+        },
+        init: function () {
+            // this.$root.fillTab('角色管理',this.router.hash);
+        }
+    })
+</script>

@@ -1,0 +1,106 @@
+<textarea>
+  <Modal v-model="state_show" title="课程维护" width="800">
+    <components_design_form ref="form" name="train-class-course-form" 
+    :rules="rules" :source="info">
+    </components_design_form>
+    <div slot="footer">
+      <Button type="primary" @click="doSubmit">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+  Rap.define(['/components/design/form'], {
+    props:['tid'],
+    data: function () {
+      return {
+        state_show: false,
+        types: [],
+        state_show: false,
+        info: {
+        },
+        id: 0,
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          type: [
+            { required: true, message: '请选择类型', trigger: 'blur' }
+          ],
+        },
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onShow(item) {
+        this.state_show = true;
+        if (undefined != item) {
+          this.id = item.id;
+          this.info = Object.assign({}, item);
+        } else {
+          this.id = 0;
+          this.info = {};
+          this.info = Object.assign({}, this.info);
+        }
+      },
+      async doSubmit(name) {
+        var json = await this.$refs.form.take();
+        if (false === json) {
+          return;
+        }
+        delete json._rowKey;
+        delete json._index;
+        if (0 == this.id) {
+          this.doInsert(json);
+        } else {
+          this.doUpdate(json);
+        }
+
+      },
+      doInsert(json) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-course/create.do',
+          data: {
+            info: json,
+            uid: this.$store.state.user.uid,
+            tid: this.tid
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功创建');
+            this.$emit('data-change', {});
+            this.state_show = false;
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      doUpdate(json) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-course/update.do',
+          data: {
+            info: json,
+            uid: this.$store.state.user.uid,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功更新');
+            this.$emit('data-change', {});
+            this.state_show = false;
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+    },
+    init: function (query, search) {
+    }
+  })
+</script>

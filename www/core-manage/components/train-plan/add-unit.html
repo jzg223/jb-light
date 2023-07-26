@@ -1,0 +1,79 @@
+<textarea>
+  <div>
+    <Row v-for="(row, index) in rows" :key="index">
+      <Col>
+        <Select style="width: 200px;margin-right: 20px;" clearable filterable>
+          <Option :value="item.code" v-for="item in opts">{{item.name}}</Option>
+        </Select>
+        <InputNumber :min="0" style="margin-right: 20px;"></InputNumber>
+      </Col>
+      <Col>
+          <Button @click="doRemove(index)" type="error" icon="md-remove"></Button>
+      </Col>
+    </Row>
+    <Row>
+      <Col>
+        <Button @click="addRow(i++);" type="dashed" icon="md-add" style="margin-right: 10px;"></Button>
+      </Col>
+    </Row>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: [],
+    data: function () {
+      return {
+        rows: [],
+        opts: [],
+        i: 0,
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+      this.onInit();
+    },
+    methods: {
+      addRow() {
+        this.rows.push('');
+      },
+
+      doRemove(i) {
+        this.rows.splice(i,1);
+      },
+
+      onInit() {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/region/all-child.do',
+          data: {
+            region: this.$store.state.user.properties.region,
+          }
+        }).then(res=> {
+          let root = res.data;
+          if(root.code == 200) {
+            this.opts = root.datas;
+          }
+        }).catch(err=> {
+          console.log(err);
+          this.$Message.error('发生错误请联系管理员');
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.planInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+
+</style>

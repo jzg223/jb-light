@@ -1,0 +1,165 @@
+<textarea>
+    <Drawer :title="0==fid?'添加功能【'+app.app_title+'】':'维护功能【'+app.app_title+'】'" :closable="true" v-model="state_show"
+        width="500">
+        <Form ref="info" :model="info" :rules="rules" :label-width="80">
+            <FormItem label="标题" prop="name">
+                <Input type="text" v-model="info.name" placeholder="请输入功能标题" />
+            </FormItem>
+            <FormItem label="排序" prop="orderno">
+                <Input type="text" v-model="info.orderno" placeholder="请输入功能排序" />
+            </FormItem>
+            <FormItem label="图标" prop="icon">
+                <Input type="text" v-model="info.icon" placeholder="请输入图标路径" />
+            </FormItem>
+            <FormItem label="路径" prop="fullpath">
+                <Input type="text" v-model="info.fullpath" placeholder="请输入功能路径" />
+            </FormItem>
+            <FormItem label="上级" prop="umid">
+                <components_sso_moduleSelect :app="app" :value="selected_module" @module-change="onModuleSelect">
+                </components_sso_moduleSelect>
+            </FormItem>
+            <FormItem>
+                <Button @click="state_show=false" style="margin: 0 16px 0 15%">关闭</Button>
+                <Button type="primary" @click="doSubmit('info')">提交</Button>
+                <Poptip v-if="0!=fid" confirm title="确定要删除该功能?" @on-ok="doRemove">
+                    <Button type="error">删除</Button>
+                </Poptip>
+            </FormItem>
+        </Form>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define(['moduleSelect'], {
+        props: ['app'],
+        data() {
+            return {
+                state_show: false,
+                fid: 0,
+                info: {
+                },
+                rules: {
+                    'name': [
+                        { required: true, message: '请输入功能名称', trigger: 'blur' },
+                        { type: 'string', min: 2, message: '最少输入两个字符', trigger: 'blur' }
+                    ],
+                    'fullpath': [
+                        { required: true, message: '请输入功能路径', trigger: 'blur' },
+                        { type: 'string', min: 2, message: '最少输入两个字符', trigger: 'blur' }
+                    ],
+                },
+                selected_module: '' // 已选择模块
+            }
+        },
+        methods: {
+            onAdd(mid) {
+                this.fid = 0;
+                this.info = {
+                    umid:mid
+                };
+                this.state_show = true;
+                this.selected_module = mid;
+            },
+            onShow(fid) {
+                this.fid = fid;
+                this.state_show = true;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/uifunction/show.do',
+                    data: {
+                        id: fid,
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.info = root.data;
+                        this.selected_module = '0';
+                        var umid = this.info['umid'];
+                        if (undefined != umid && null != umid && '' != umid) {
+                            this.selected_module = '' + umid;
+                        }
+                        // this.selected_module = this.info['umid'] + '';
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            doRemove() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/uifunction/delete.do',
+                    data: {
+                        id: this.fid,
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success('成功删除功能');
+                        this.$emit('data-change', {});
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error("删除失败");
+                })
+            },
+            doSubmit(name) {
+                this.$refs[name].validate((valid) => {
+                    if (valid) {
+                        if (0 == this.fid) {
+                            instance_axios({
+                                method: 'post',
+                                url: 'api/sso/uifunction/insert.do',
+                                data: {
+                                    info: this.info,
+                                    app: this.app.id
+                                }
+                            }).then(res => {
+                                let data = res.data;
+                                if (data.code === 200) {
+                                    this.$Message.success('添加功能成功');
+                                    this.$emit('data-change', {});
+                                } else {
+                                    this.$Message.error(data.message)
+                                }
+                            })
+                        } else {
+                            instance_axios({
+                                method: 'post',
+                                url: 'api/sso/uifunction/update.do',
+                                data: {
+                                    id: this.fid,
+                                    info: this.info,
+                                    app: this.app.id
+                                }
+                            }).then(res => {
+                                let data = res.data
+                                if (data.code === 200) {
+                                    this.$Message.success('修改功能成功');
+                                    this.$emit('data-change', {});
+                                    // this.getRoleListDataHandle()
+                                } else {
+                                    this.$Message.error(data.message)
+                                }
+                            })
+                        }
+                    } else {
+                        this.$Message.error('校验失败，请重新填写')
+                    }
+                })
+            },
+            onModuleSelect(event) {
+                console.log('module change '+event);
+                this.info.umid = event;
+                this.info = Object.assign({}, this.info);
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

@@ -1,0 +1,80 @@
+<textarea>
+  <DatePicker :type="type" :value="value" :placeholder="cell.tip" 
+    :transfer="true" @on-change="onChange" :format="format" ></DatePicker>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source'],
+    data() {
+      return {
+        value: null,
+      };
+    },
+    computed: {
+      format() {
+        if (undefined != this.cell.dateType && '' != this.cell.dateType) {
+          return '';
+        }
+        return "yyyy-MM-dd";
+      },
+      type() {
+        if (undefined != this.cell.dateType && '' != this.cell.dateType) {
+          return this.cell.dateType;
+        }
+        return "date";
+      }
+    },
+    watch: {
+      source: {
+        handler(new_val) {
+          // if (undefined == new_val) {
+          //   this.value = undefined;
+          //   // if ('1' == this.cell.returnType) {
+          //   //     this.value = new Date(this.source);
+          //   //   } else {
+          //   //     this.value = new Date(this.source * 1000);
+          //   //   }
+          // } else {
+          //   if ('date' != this.type) {
+          //     this.value = this.source;
+          //   } else {
+          //     if ('1' == this.cell.returnType) {
+          //       this.value = new Date(this.source);
+          //     } else {
+          //       this.value = new Date(this.source * 1000);
+          //     }
+          //   }
+          // }
+        },
+        immediate: true
+      }
+    },
+    methods: {
+      onChange(date) {
+        if ('date' != this.type) {
+          this.$emit("change", {
+            'field': this.cell.name, 'value':
+              date
+          })
+          return;
+        }
+        if ('1' == this.cell.returnType) {
+          this.$emit("change", {
+            'field': this.cell.name, 'value':
+              this.onformat(new Date(date))
+          })
+        } else {
+          this.$emit("change", { 'field': this.cell.name, 'value': new Date(date).getTime() / 1000 })
+        }
+      },
+      onformat(date) {
+        let y = date.getFullYear();
+        let MM = date.getMonth() + 1;
+        MM = MM < 10 ? ('0' + MM) : MM;
+        let d = date.getDate();
+        d = d < 10 ? ('0' + d) : d;
+        return y + '-' + MM + '-' + d;
+      },
+    }
+  });
+</script>

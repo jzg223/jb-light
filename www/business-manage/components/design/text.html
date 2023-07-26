@@ -1,0 +1,53 @@
+<textarea>
+  <Input :rows="4" :type="cell.text_type" v-model="value" placeholder="" :disabled="isReadonly()" />
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source','state'],
+    data() {
+      return {
+        value: null,
+        format: 'yyyy-MM-dd'
+      };
+    },
+    watch: {
+      source: {
+        handler(new_val) {
+          if (undefined == new_val) {
+            this.value = '';
+          } else {
+            this.value = this.source;
+          }
+        },
+        immediate: true
+      },
+      value:{
+        handler(new_val) {
+          this.$emit("change", { 'field': this.cell.name, 'value': this.value });
+        },
+        immediate: false
+      }
+    },
+    methods: {
+      isReadonly(){
+        var readonly = this.cell.readonly;
+        if('1'==''+readonly){
+          //不为空只读
+          if(1 == this.state){
+            return true;
+          }
+        }
+
+        if('2' == ''+readonly){
+          //不可编辑
+          return true;
+        }
+        return false;
+      },
+      onChange(date) {
+        console.log('date-change' + date);
+        this.$emit("change", { 'field': this.cell.name, 'value': new Date(date).getTime()/1000 })
+      }
+    }
+  });
+</script>

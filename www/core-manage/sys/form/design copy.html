@@ -1,0 +1,325 @@
+<textarea>
+  <div class="demo-split">
+    <Split v-model="splitLeft">
+      <div slot="left" class="demo-split-pane no-padding">
+        <Split v-model="splitTop" mode="vertical">
+          <div slot="top" class="demo-split-pane">
+              <Button icon="ios-add" type="primary" @click="$refs.fill.onShow()">解析</Button>
+              <Button icon="ios-add" type="primary" @click="onAddRow()">添加行</Button>
+              <Button type="primary" @click="onSave">保存</Button>
+          </div>
+          <div slot="bottom" class="demo-split-pane">
+            <Form ref="info" :model="info" :rules="rules" :label-width="100" >
+              <FormItem label="名称" prop="name">
+                <Input type="text" v-model="info.name" placeholder="" />
+              </FormItem>
+              <FormItem label="类型" prop="type">
+                <Select v-model="info.type">
+                    <Option v-for="item in types" :value="item.value" :key="item.value">{{ item.label }}</Option>
+                </Select>
+              </FormItem>
+              <FormItem label="标题" prop="title">
+                <Input type="text" v-model="info.title" placeholder="" />
+              </FormItem>
+              <FormItem label="输入类型" prop="text_type" v-if="'text'==info.type">
+                  <Select v-model="info.text_type">
+                      <Option v-for="item in types_text" :value="item.value" :key="item.value">{{ item.label }}</Option>
+                  </Select>
+              </FormItem>
+              <FormItem label="查询sql" prop="select_sql" v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type">
+                <Input type="text" v-model="info.select_sql" placeholder="" />
+              </FormItem>
+              <FormItem label="value字段" prop="select_nameField"  v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type">
+                  <Input type="text" v-model="info.select_nameField" placeholder="" />
+              </FormItem>
+              <FormItem label="title字段" prop="select_titleField"  v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type">
+                <Input type="text" v-model="info.select_titleField" placeholder="" />
+              </FormItem>
+              <FormItem label="选项" prop="select_options"  v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type">
+                <Input v-model="info.select_options" placeholder="" type="textarea" :rows="4"  />
+              </FormItem>
+              <FormItem label="接口" prop="select_url"  v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type">
+                <Input v-model="info.select_url" />
+              </FormItem>
+
+              <FormItem label="组件" prop="comname"  v-if="'my'==info.type">
+                <Input type="text" v-model="info.comname" placeholder="" />
+              </FormItem>
+              <FormItem label="只读" prop="readonly"  v-if="'my'!=info.type">
+                <!-- <i-switch v-model="info.readonly" @on-change="" :true-value="1" :false-value="0"/> -->
+                <RadioGroup v-model="info.readonly">
+                  <Radio label="0">编辑</Radio>
+                  <Radio label="1">不为空只读</Radio>
+                  <Radio label="2">不可编辑</Radio>
+                  <!-- <Radio label="3">不可编辑</Radio> -->
+                </RadioGroup>
+              </FormItem>
+
+              <FormItem label="返回类型" prop="returnType"  v-if="'date'==info.type||'time'==info.type">
+                <!-- <i-switch v-model="info.readonly" @on-change="" :true-value="1" :false-value="0"/> -->
+                <RadioGroup v-model="info.returnType">
+                  <Radio label="0">整形</Radio>
+                  <Radio label="1">字符</Radio>
+                  <!-- <Radio label="3">不可编辑</Radio> -->
+                </RadioGroup>
+              </FormItem>
+              <FormItem label="是否多选" prop="isMul"  v-if="'select'==info.type">
+                <!-- <i-switch v-model="info.readonly" @on-change="" :true-value="1" :false-value="0"/> -->
+                <RadioGroup v-model="info.isMul">
+                  <Radio label="0">否</Radio>
+                  <Radio label="1">是</Radio>
+                  <!-- <Radio label="3">不可编辑</Radio> -->
+                </RadioGroup>
+              </FormItem>
+              <FormItem label="名称字段" prop="titleField" v-if="'select'==info.type||'radio'==info.type||'checkbox'==info.type">
+                <Input type="text" v-model="info.titleField" placeholder="" />
+              </FormItem>
+              <FormItem label="本地存储" prop="dict" v-if="'select'==info.type||'radio'==info.type||'checkbox'==info.type">
+                <Input type="text" v-model="info.dict" placeholder="" />
+              </FormItem>
+              <FormItem label="数据改变回调" prop="changeCallBack" v-if="'select'==info.type||'radio'==info.type||'checkbox'==info.type">
+                <Input type="textarea" v-model="info.changeCallBack" placeholder="" :rows="4" />
+              </FormItem>
+              
+              <FormItem>
+                  <Button type="primary" @click="onChange">确认</Button>
+              </FormItem>
+            </Form>
+            
+          </div>
+        </Split>
+      </div>
+      <div slot="right" class="demo-split-pane">
+        <template  v-for="(row,rowIndex) of rows">
+        <Row  v-bind:key="rowIndex" >
+          <Col span="24" >
+          <span :draggable="true" :dropable="true" v-for="(cell,cellIndex) in row" :key="cellIndex" 
+          @dragover="allowDrop($event)" @dragstart="onDrag($event,rowIndex,cellIndex)"  @drop="onDrop($event,rowIndex,cellIndex)">
+          <Tag type="dot" 
+             :color="name_checked==(rowIndex+'-'+cellIndex)?'error':'primary'" checkable @on-change="onSelect"
+            :name="rowIndex+'-'+cellIndex" closable @on-close="onClose(rowIndex,cellIndex)">
+            {{ cell.title }}</Tag></span>
+          <Button icon="ios-add" type="dashed" size="small" @click="onAdd(rowIndex)"></Button>
+          <Button icon="ios-remove" type="dashed" size="small" @click="onRemoveRow(rowIndex)"></Button>
+          <Button icon="ios-arrow-round-up" type="dashed" size="small" @click="onUp(rowIndex)"></Button>
+          <Button icon="ios-arrow-round-down" type="dashed" size="small" @click="onDown(rowIndex)"></Button>
+          </Col>
+        </Row>
+        <Divider dashed />
+        </template>
+        
+      </div>
+    </Split>
+    <view_sys_form_fill ref="fill" @data-change="onFill"></view_sys_form_fill>
+
+  </div>
+</textarea>
+<script>
+  Rap.define(['fill'], {
+    props: ['fid', 'formInfo', 'ope'],
+    data: function () {
+      return {
+        types:[
+          {'value':'text','label':'文本输入'},
+          {'value':'select','label':'下拉选择'},
+          {'value':'radio','label':'单选'},
+          {'value':'checkbox','label':'复选'},
+          {'value':'date','label':'日期选择'},
+          {'value':'time','label':'时间选择'},
+          {'value':'file','label':'文件上传'},
+          {'value':'image','label':'图像上传'},
+          {'value':'fj','label':'附件上传'},
+          {'value':'fattext','label':'富文本'},
+          {'value':'my','label':'自定义'},
+        ],
+        types_text:[
+          {'value':'text','label':'文本'},
+          {'value':'password','label':'密码'},
+          {'value':'textarea','label':'大文本'},
+          {'value':'url','label':'网址'},
+          {'value':'email','label':'邮箱'},
+          {'value':'date','label':'日期'},
+          {'value':'number','label':'数字'},
+          {'value':'tel','label':'电话'},
+         
+        ],
+        splitLeft: '500px',
+        splitTop: '50px',
+        rows: [],
+        name_checked: '',
+        info: {},
+        rules: {},
+        drag_rowIndex:0,
+        drag_cellIndex:0
+      }
+    },
+    created: function () {
+      // this.onInit();
+      if (0 == this.rows.length) {
+        this.rows.push([]);
+      }
+    },
+    mounted() {
+    },
+    methods: {
+      onFill(datas){
+        if(undefined == datas || 0 == datas.length){
+          return;
+        }
+        for(var arr of datas){
+          this.rows.push([{
+            title:arr[arr.length-1],
+            name:arr[0]
+          }])
+        }
+        this.rows = Object.assign([],this.rows);
+      },
+      onDrag(e, rowIndex,cellIndex) {
+        this.drag_rowIndex = rowIndex;
+        this.drag_cellIndex = cellIndex;
+        console.log(this.drag_rowIndex+' ---- '+this.drag_cellIndex+'  ---开始拖动');
+      },
+      onDrop(e, rowIndex,cellIndex) {
+        console.log(rowIndex+' -  '+cellIndex);
+        console.log(this.drag_rowIndex+' ---- '+this.drag_cellIndex);
+
+        var temp = this.rows[this.drag_rowIndex][this.drag_cellIndex];
+        this.rows[this.drag_rowIndex][this.drag_cellIndex] = this.rows[rowIndex][cellIndex];
+        this.rows[rowIndex][cellIndex] = temp;
+        this.rows = Object.assign([],this.rows);
+        // return;
+        // this.drag_end = index;
+        // if (-1 != this.drag_start && -1 != this.drag_start) {
+        //   var temp = this.needs[this.drag_start];
+        //   this.needs[this.drag_start] = this.needs[this.drag_end];
+        //   this.needs[this.drag_end] = temp;
+        // }
+        // this.needs = Object.assign([], this.needs);
+        // const dragIndex = e.dataTransfer.getData("index");
+        // this.$parent.$parent.dragAndDrop(dragIndex,index);
+        e.preventDefault();
+      },
+      allowDrop(e) {
+        e.preventDefault();
+      },
+      onUp(index){
+        if (0 == index) {
+          return;
+        }
+        var temp = this.rows[index - 1];
+        this.rows[index - 1] = this.rows[index];
+        this.rows[index] = temp;
+        this.rows = Object.assign([], this.rows);
+      },
+      onDown(index){
+        if (this.rows.length - 1 == index) {
+          return;
+        }
+        var temp = this.rows[index + 1];
+        this.rows[index + 1] = this.rows[index];
+        this.rows[index] = temp;
+        this.rows = Object.assign([], this.rows);
+      },
+      onSelect(checked, name) {
+        this.name_checked = name;
+        var strs = name.split('-');
+        var rowIndex = parseInt(strs[0]);
+        var cellIndex = parseInt(strs[1]);
+        
+        this.info = Object.assign({}, this.rows[rowIndex][cellIndex]);
+        if(undefined == this.info.readonly){
+          this.info.readonly = 0;
+        }
+        this.info = Object.assign({},this.info);
+      },
+      onClose(rowIndex, cellIndex) {
+        this.rows[rowIndex].splice(cellIndex, 1);
+      },
+      onAdd(rowIndex) {
+        var cells = this.rows[rowIndex];
+        var key = rowIndex + '-' + cells.length;
+        cells.push({ 'title': '字段' + cells.length });
+        this.onSelect(false,key);
+      },
+      onRemoveRow(rowIndex){
+        this.rows.splice(rowIndex,1);
+      },
+      onAddRow() {
+        this.rows.push([]);
+      },
+      onChange() {
+        console.log(this.name_checked + " --- " + JSON.stringify(this.info));
+        var strs = this.name_checked.split('-');
+        var rowIndex = parseInt(strs[0]);
+        var cellIndex = parseInt(strs[1]);
+        console.log(JSON.stringify(this.rows[rowIndex][cellIndex]));
+        this.rows[rowIndex][cellIndex] = Object.assign({}, this.info);
+        this.rows = Object.assign([], this.rows);
+        // this.info = Object.assign({}, );
+      },
+      onSave(name) {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/form/update.do',
+          data: {
+            info: {
+              content: JSON.stringify(this.rows) + ' '
+            },
+            id: this.fid,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+
+      },
+      onInit() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      formInfo: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            // this.info = Object.assign({}, int2str(this.formInfo));
+            var content = this.formInfo.content;
+            if (undefined != content && '' != content) {
+              this.rows = JSON.parse(content);
+              this.name_checked = '0-0';
+              this.onSelect(true, this.name_checked);
+            }
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+
+
+  .demo-split {
+    /* min-height: 500px; */
+    height: auto;
+    border: 1px solid #dcdee2;
+  }
+
+  .demo-split-pane {
+    padding: 10px;
+  }
+
+  .demo-split-pane.no-padding {
+    height: 500px;
+    padding: 0;
+  }
+</style>

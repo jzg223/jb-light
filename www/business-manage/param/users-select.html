@@ -1,0 +1,155 @@
+<textarea>
+    <!-- <div>{{nodes}}</div> -->
+    <!-- 部门选择组件，只能选择一个部门 -->
+    <span>
+    <Input v-model="userName" search placeholder="选择员工" @on-focus="onFocus"/>
+    <Modal
+        v-model="state_show"
+        title="选择员工"
+        @on-ok="onOk" width="1200"
+        @on-cancel="">
+        <div class="row">
+            <div class="col-sm-12 col-md-3">
+                <param_org-tree-inner @org-change="onOrgChange"></param_org-tree-inner>
+            </div>
+            <div class="col-sm-12 col-md-9">
+                <div style="padding:15px 10px 0;padding-bottom:10px;border-bottom:1px solid #ccc">
+                    <div style="color:#585858; text-align:center;">⇐ 点击左边部门筛选员工，或者点击下面字母筛选</div>
+                <div style="color:#585858; text-align:center;">
+                    <template v-for="item of letter"> 
+                        <span class="layui-letter-span" :class="selectLetter==item?'active':''" @click="getUsersByLetter(item)">{{item}}</span>
+                    </template>
+                </div
+                ></div>
+                <div style="padding-top:10px">
+                    <template v-for="(item,x) of showUsers">
+                        <span style="padding:5px;">
+                            <Button  :type="-1==selecteds.indexOf(item.id)?'':'primary'"  @click="onSelect(item)">{{item.title}}</Button>
+                        </span>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </Modal>
+</span>
+</textarea>
+<script>
+    var { pinyin } = pinyinPro;
+    Rap.define(['/param/org-tree-inner'], {
+        props: ['source'],
+        data() {
+            return {
+                state_show: false,
+                users: [],
+                userName: '',
+                selecteds: [],
+                showUsers: [],//用于显示的用户数据
+                letter: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
+                selectLetter: '',//记录选择的字母
+            }
+        },
+        methods: {
+            onFocus() {
+                this.state_show = true;
+            },
+            onOrgChange(org) {
+                if (undefined == org) {
+                    return
+                }
+                onSend('../api/sys/user/list.do', {
+                    orgId: org.id
+                }, (root) => {
+                    this.users = root.datas;
+                    this.users = Object.assign([], this.users)
+                    if (!this.selectLetter) {
+                        this.showUsers = Object.assign([], this.users)
+                    } else {
+                        this.getUsersByLetter(this.selectLetter, true);
+                    }
+                })
+            },
+            onSelect(user){
+                var index = this.selecteds.indexOf(user.id)
+                if(index==-1){
+                    this.selecteds.push(user.id)
+                }else{
+                    this.selecteds.splice(index,1)
+                }
+                this.selecteds = Object.assign([],this.selecteds)
+                var buffer = '';
+                for(var item of this.users){
+                    if(-1!=this.selecteds.indexOf(item.id)){
+                        buffer = buffer+ item.title+','
+                    }
+                }
+                this.userName = buffer
+            },
+            //通过字母获取对应的姓名用户
+            getUsersByLetter(letter, is_refresh) {
+                if (letter == this.selectLetter && !is_refresh) {
+                    this.selectLetter = "";
+                    this.showUsers = Object.assign([], this.users);
+                    return;
+                } else {
+                    this.selectLetter = letter;
+                }
+                this.showUsers = [];
+                //通过拼音首字母匹配
+                this.users.forEach((item => {
+                    let py = pinyin(item.title, { toneType: 'none' });
+                    if (letter.toLowerCase() == py.substring(0, 1)) {
+                        this.showUsers.push(item);
+                    }
+                }))
+                console.log("getUsersByLetter = >", this.showUsers)
+            },
+            onOk() {
+                var buffer = '';
+                for(var item of this.users){
+                    if(-1!=this.selecteds.indexOf(item.id)){
+                        buffer = item.title+','
+                    }
+                }
+                this.$emit('users-select',{values:this.selecteds,title:buffer})
+                this.state_show = false
+            }
+        },
+        created() {},
+        watch: {
+            source: {
+                handler(new_val, oldName) {
+                    if(undefined!=new_val){
+                        this.userName = this.source
+                    }else{
+                        this.userName = '';
+                    }
+                },
+                immediate: true
+            },
+            region: {
+                handler(new_val, oldName) {
+                    if (undefined != this.region && '' != this.region) {
+                        this.onRefersh();
+                    }
+
+                },
+                immediate: true
+            },
+
+        },
+        init: function () {}
+    })
+</script>
+<style>
+    .layui-letter-span {
+        padding: 10px 8px;
+        font-size: 15px;
+        display: inline-block;
+        cursor: pointer;
+    }
+
+    .active {
+        font-weight: 800;
+        color: #FF6347;
+    }
+</style>

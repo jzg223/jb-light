@@ -1,0 +1,135 @@
+<template>
+    <skin_two39>
+        <!-- <template slot="top">
+            <skin_header title="界面管理"></skin_header>
+        </template> -->
+        <template slot="left">
+            <skin_card title="模块">
+                <template slot="opes">
+                    <i-button type="primary" @click="$refs.module.onAdd()" icon="ios-add"></i-button>
+                    <i-button v-if="undefined!=selected_module&&undefined!=selected_module.key" type="primary"
+                        icon="ios-build" class="extra" @click="$refs.module.onShow(selected_module.key)"></i-button>
+                </template>
+                <template slot="body">
+                    <sys_ui_mtree ref="tree" @module-change="onModuleChange"></sys_ui_mtree>
+                </template>
+            </skin_card>
+        </template>
+        <template slot="right">
+            <skin_card title="功能列表">
+                <template slot="opes">
+                    <i-button type="info" ghost class="extra"
+                        @click="$refs.function.onAdd((selected_module)?selected_module.key:0)">添加</i-button>
+                </template>
+                <template slot="body">
+                    <components_table :params="params" :columns="columns" :config="config" ref="table">
+                        <template slot-scope="{ row, index }" slot="action">
+                            <i-button type="primary" size="small" style="margin-right: 5px"
+                                @click="rowAction(row,'edit')">修改</i-button>
+                        </template>
+                    </components_table>
+                </template>
+            </skin_card>
+            <sys_ui_minfo ref="module" @data-change="$refs.tree.onRefersh()"></sys_ui_minfo>
+            <sys_ui_finfo @data-change="onRefersh" ref="function"></sys_ui_finfo>
+        </template>
+    </skin_two39>
+</template>
+<script>
+    //这里定义组件
+    Rap.define(['ui/minfo', 'ui/finfo', 'ui/mtree', '/components/table'], {
+        data() {
+            return {
+                search: {
+                    uf_title: '',
+                    uf_path: ''
+                },
+                columns: [
+                    {
+                        'title': '#',
+                        type: 'selection'
+                    },
+                    {
+                        'title': '名称',
+                        'key': 'name',
+                        'sortable': true
+                    }, {
+                        'title': '资源',
+                        'key': 'path',
+                        'sortable': true
+                    }, {
+                        'title': '路径',
+                        'key': 'fullpath',
+                        'sortable': true
+                    }, {
+                        'title': '功能模板',
+                        'key': 'templatename',
+                        'sortable': true
+                    }, {
+                        'title': '排序',
+                        'key': 'orderno',
+                        'sortable': true
+                    }, {
+                        'title': '操作',
+                        'slot': 'action'
+                    }
+                ],
+                selected_module: undefined,//已选中模块
+                params: {},
+                config: {
+                    url: 'api/sys/uifunction/list.do',
+                    isShowPage: true
+                }
+            }
+        },
+        methods: {
+            rowAction(row, action) {
+                if ('edit' == action) {
+                    this.$refs.function.onShow(row.id);
+                } else {
+
+                }
+            },
+            onBatDelete() {
+                var ids = [];
+                for (var data of this.selectedDatas) {
+                    ids.push(data.id);
+                }
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/uifunction/batdelete.do',
+                    data: {
+                        ids: ids
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        this.$Message.success('批量删除成功');
+                        this.onRefersh();
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onRefersh() {
+                this.$refs.table.onRefersh();
+            },
+            onModuleChange(node) {
+                this.selected_module = node;
+                this.params.mid = node.key;
+                this.$refs.table.onSearch();
+            },
+            onSearch() {
+                this.$refs.table.onSearch();
+            },
+        },
+        created() {
+        },
+        init: function () {
+            this.onRefersh();
+        }
+    })
+</script>

@@ -1,0 +1,427 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">管理日志</div>
+    <div class="panel-body">
+      <Form ref="info" :model="info" :rules="rules" :label-width="180">
+        <FormItem>
+          <Button class="confirm" type="warning" v-if="'view'!==auth" @click="doConfirm('info')">确认</Button>
+        </FormItem>
+      </Form>
+      <Row>
+        <Col span="8" class="current_date">
+          <components_date @on-change="onChange" :clickable="clickable"></components_date>
+          <div class="current_day_big">
+            <span>{{date[2]}}</span>
+          </div>
+        </Col>
+        <Col span="16">
+          <div class="current_content">
+            <!---->
+            <Button @click="showModal = true" class="current_create" v-if="showCreate">创建</Button>
+            <Modal
+              v-model="showModal"
+              title="创建日志内容">
+              <Form ref="into" :model="into" :rules="rules" :label-width="80">
+                <Row>
+                  <Col span="12">
+                    <Form-item label="时间" prop="startTime">
+                      <Time-picker v-model="into.startTime" confirm placeholder="开始时间" style="width: 168px" format="HH:mm"></Time-picker>
+                    </Form-item>
+                  </Col>
+                  <Col span="12">
+                    <Form-item prop="endTime">
+                      <Time-picker v-model="into.endTime" confirm placeholder="结束时间" style="width: 168px" format="HH:mm"></Time-picker>
+                    </Form-item>
+                </Col>
+                </Row>
+              </Form-item>
+              <Form-item label="记事" prop="content">
+                  <Input v-model="into.content" type="textarea" placeholder="请输入内容"></Input>
+              </Form-item>
+            </Form>
+            <div slot="footer">
+              <Button class="current_sub" type="primary" size="small" v-if="'view'!==auth"  @click="doSubmit(into)">提交</Button>
+            </div>
+            </Modal>
+            <!-- <div v-if="day == today" class="current_form">-->
+            <div class="current_steps">
+              <Steps :current="x" direction="vertical" v-for="(item,x) of datas" :key="x">
+                <Step :title="item.startTime+' 至 '+item.endTime" :content="item.content"></Step>
+              </Steps>
+              <div class="current_mask">
+                <div class="current_handle" v-for="item in datas">
+                  <a href="javascript:;" @click="onEdit(item)">修改</a>
+                  <Poptip confirm title="确定要删除?" @on-ok="doRemove(item.id)">
+                    <a href="javascript:;">删除</a>
+                  </Poptip>
+                </div>
+              </div>
+              <div v-if="datas.length==0" class="current_empty">
+                <p>抱歉 ~~ 当前日期没有参数</p>
+              </div>
+            </div>
+          </div>
+        <Col>
+      </Row>
+    </div>
+    <Modal v-model="showEdit" title="编辑日志内容" :closable="false" :mask-closable="false">
+      <Form ref="into" :model="into" :rules="rules" :label-width="80">
+        <Row>
+          <Col span="12">
+            <Form-item label="时间" prop="startTime">
+              <Time-picker v-model="into.startTime" confirm placeholder="开始时间" style="width: 168px" format="HH:mm"></Time-picker>
+            </Form-item>
+          </Col>
+          <Col span="12">
+            <Form-item prop="endTime">
+              <Time-picker v-model="into.endTime" confirm placeholder="结束时间" style="width: 168px" format="HH:mm"></Time-picker>
+            </Form-item>
+        </Col>
+        </Row>
+      </Form-item>
+      <Form-item label="记事" prop="content">
+          <Input v-model="into.content" type="textarea" placeholder="请输入内容"></Input>
+      </Form-item>
+    </Form>
+    <div slot="footer">
+      <Button class="current_sub" type="primary" size="small" v-if="'view'!==auth"  @click="doEdit(into)">提交</Button>
+      <Button class="current_sub current_close" size="small" v-if="'view'!==auth"  @click="onCloce">取消</Button>
+    </div>
+    </Modal>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/date'], {
+    props: ['id', 'classInfo','auth'],
+    data: function () {
+      return {
+        info: {},
+        rules: {
+          startTime: [
+            { required: true, message: '开始时间不能为空', trigger: 'blur' }
+          ],
+          endTime: [
+            { required: true, message: '结束时间不能为空', trigger: 'blur' }
+          ],
+          content: [
+            { required: true, message: '记事不能为空', trigger: 'blur' }
+          ],
+        },
+        datas: [],
+        into: {},
+        day: '',
+        date: [],
+        today: '',
+        clickable: [],
+        showModal: false,
+        showEdit: false,
+        showCreate: true,
+      }
+    },
+    created: function () {
+      this.toDay();
+      this.onRefersh();
+    },
+    mounted() {
+    },
+    methods: {
+      doConfirm(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-manage-log.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err=> {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员')
+        })
+      },
+      onCloce() {
+        this.showEdit = false;
+        this.into = {};
+      },
+
+      onEdit(item) {
+        this.into = item;
+        this.showEdit = true;
+      },
+
+      doEdit(item) {
+        let into = item
+        console.log(into);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-mlog/update.do',
+          data: {
+            info: into,
+            id: into.id
+          }
+        }).then(res => {
+          let root = res.data;
+          if (root.code === 200) {
+            this.$Message.success('修改成功');
+            this.onRefersh();
+            this.showEdit = false;
+            this.into = {};
+            this.$emit('data-change', {});
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+          })
+      },
+
+      doRemove(did) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-mlog/delete.do',
+          data: {
+            id: did
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+          this.onRefersh();
+            this.$Message.success('删除成功')
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+      },
+
+      toDay() {
+        let now = new Date();
+        let y = now.getFullYear();
+        let m = now.getMonth()+1;
+        let d = now.getDate();
+        this.today = y + '-' + m + '-' + d;
+        this.day = this.today;
+        // 用于在初始化时日历下方显示日期
+        this.date[2] = d;
+      },
+
+      onChange(date) {
+        // 如果没有数据，阻止进行后续操作
+        // if(date[3] !== true) {
+        //   this.$Message.error('当前日期无日志')
+        //   return
+        // }
+        this.day = date[0] + '-' + date[1] + '-' + date[2];
+        let now = new Date(this.today)
+        let day = new Date(this.day)
+        if(now >= day) {
+          this.showCreate = true;
+        }else {
+          this.showCreate = false;
+        }
+        this.date = date;
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-mlog/list-day.do',
+          data: {
+            day: this.day
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.datas = root.datas;
+            // this.$Message.success('获取成功')
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+      },
+
+      doSubmit(info) {
+        if(info.startTime.trim() == ''||info.startTime == undefined) {
+          this.$Message.error('开始时间不能为空');
+          return
+        }
+        if(info.endTime.trim() == ''||info.endTime == undefined) {
+          this.$Message.error('结束时间不能为空');
+          return
+        }
+        if(info.content == undefined || info.content.trim() == '') {
+          this.$Message.error('记事不能为空');
+          return
+        }
+
+        let into = info
+        console.log(this.id);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-mlog/create.do',
+          data: {
+            uid: this.$store.state.uid,
+            info: into,
+            classId: this.id,
+            recordDay: this.day,
+          }
+        }).then(res => {
+          let root = res.data;
+          if (root.code === 200) {
+            this.$Message.success('创建成功');
+            this.onRefersh();
+            this.showModal = false;
+            this.into = {};
+            this.$emit('data-change', {});
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+          })
+      },
+
+      onRefersh() {
+        // 获取当天日志
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-mlog/list-day.do',
+          data: {
+            day: this.day
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.datas = root.datas;
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.info = Object.assign({},this.classInfo);
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .current_date {
+    padding: 20px 50px 0 0;
+  }
+
+  .current_day_big {
+    padding: 20px;
+    text-align: center;
+  }
+
+  .current_day_big > span {
+    font-size: 80px;
+    color: red;
+  }
+
+  .current_content {
+    padding-left:50px;
+    border-left: 1px solid #ececec;
+  }
+
+  .current_create {
+    right: 5px;
+    margin-left: 30px;
+    margin-bottom: 30px;
+    background-color: #d3fbf9;
+    border: 1px solid #d3fbf9;
+    color: #6bcac2;
+    border-radius: 8px;
+  }
+
+  .current_create:hover {
+    background-color: #d3fbf9;
+    border: 1px solid #d3fbf9;
+    color: #6bcac2;
+    border-radius: 8px;
+  }
+
+  .current_form {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #d8d8d8;
+  }
+
+  .current_sub {
+    margin-left: 50px;
+  }
+
+  .current_close {
+    background-color: #f7f7f7;
+  }
+
+  .current_steps {
+    position: relative;
+    width: 100%;
+  }
+
+  .current_mask {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .current_handle {
+    flex:1;
+    padding-top: 30px;
+    padding-right: 20px;
+    text-align: end;
+  }
+
+  .current_handle:hover {
+    border-top: 1px solid #f3f4f7;
+    border-bottom: 1px solid #f3f4f7;
+  }
+
+  .current_empty {
+    width: 100%;
+    height: 100px;
+    background-color: #f3f4f7;
+    border-radius: 5px;
+  }
+
+  .current_empty > p {
+    display: inline-block;
+    margin-top: 20px;
+    margin-left: 30px;
+    width: 100%;
+    color:silver;
+    font-size: 30px;
+    /* text-align: center; */
+  }
+</style>

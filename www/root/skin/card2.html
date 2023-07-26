@@ -1,0 +1,36 @@
+<template>
+    <div class="card">
+        <div class="card-body" style="padding:20px;">
+          <h5 class="card-title" style="margin-bottom:0px">{{title}}</h5>
+          <p class="card-text" v-if="description">{{content}}</p>
+          <template v-if="$slots.opes">
+              <slot name="opes"></slot>
+          </template>
+          <!-- <a href="#" class="card-link">Card link</a>
+          <a href="#" class="card-link">Another link</a> -->
+        </div>
+      </div>
+</template>
+<script>
+    Rap.define([], {
+        props:
+            ['title','description'],
+        data: function () {
+            return {
+            }
+        },
+        created: function () {
+        },
+        methods: {
+        },
+        init: function (query, search) {
+        },
+        watch: {
+        }
+    })
+</script>
+<style>
+    .flex {
+    flex: 1 1 0% !important;
+}
+</style>

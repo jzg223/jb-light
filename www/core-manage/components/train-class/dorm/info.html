@@ -1,0 +1,175 @@
+<textarea>
+  <Modal v-model="state_show" title="宿舍维护" width="800">
+    <Form ref="search" :model="search" inline>
+      <FormItem prop="buildingId" label="楼宇选择">
+        <Select clearable  filterable v-model="search.buildingId" label-in-value 
+            @on-change="onBuildingChange" transfer="true">
+          <Option v-for="(item,x) in buildings" :value="item.id+''"  v-bind:key="x" label="in.values">{{ item.name }}</Option>
+        </Select>
+      </FormItem>
+      <FormItem prop="floor" label="楼层选择">
+        <Select clearable  filterable v-model="search.floor" label-in-value 
+            @on-change="onFloorChange" transfer="true">
+          <Option v-for="(item,x) in floors" :value="item.id+''" v-bind:key="x" label="in.value">{{ item.name }}</Option>
+        </Select>
+      </FormItem>
+    </Form>
+
+    <ul class="ul">
+      <li v-for="(item,x) of dorms" :key="x" class="li">
+        <Checkbox v-model="selecteds[item.dormId]">
+          <!-- selecteds[search.floor+item {{search.floor}}{{item}} -->
+          {{item.dormName}}
+        </Checkbox>
+      </li>
+    </ul>
+    <div slot="footer">
+      <Button type="primary" @click="doSubmit">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+  Rap.define(['/components/design/form'], {
+    props: ['classId'],
+    data: function () {
+      return {
+        state_show: false,
+        buildings: [],
+        floors: [],
+        dorms: [],
+        search: {},
+        selecteds: {},
+        build_select: {}
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onBuildingChange(json) {
+        this.search.buildingName = json.label;
+        this.floors = [];
+        var floorNum = 0;
+
+        for (var buil of this.buildings) {
+          if ('' + buil.id == this.search.buildingId) {
+            floorNum = buil.floorNum;
+            
+            this.build_select = buil;
+            break;
+          }
+        }
+
+        for (var x = 1; x <= floorNum; x++) {
+          this.floors.push({
+            name: x + '层',
+            id: x
+          })
+        }
+        this.floors = Object.assign([], this.floors);
+
+
+      },
+      format(x) {
+        var buff = x;
+        for (var index = 1; index <= 3 - x.length; index++) {
+          buff = '0' + buff;
+        }
+        return buff;
+      },
+      onFloorChange(i) {
+        // console.log(i);
+        // console.log(this.build_select);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-dorm/list-dorm.do',
+          data: {
+            buildingId: this.build_select.id,
+            floorId: i.value
+          }
+        }).then(res=> {
+          let root = res.data;
+          if(root.code == 200) {
+            // console.log(root.datas);
+            this.dorms = root.datas;
+          }else {
+            this.$Message.error(root.message);
+          }
+        }).catch(err=> {
+          console.log(err);
+          this.$Message.error("发生错误，请联系管理员！")
+        });
+
+        // this.dorms = [];
+        // var floorRoomNum = this.build_select.floorRoomNum;
+        // for (var x = 1; x <= floorRoomNum; x++) {
+        //   this.dorms.push(this.format(x + ''));
+        // }
+        // this.dorms = Object.assign([], this.dorms);
+      },
+      onShow() {
+        this.state_show = true;
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-dorm/list-building.do',
+          data: {
+            tid: this.classId
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.buildings = root.datas;
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      doSubmit(name) {
+        var values = [];
+        for (var key in this.selecteds) {
+          // values.push(key);
+          for(let arr of this.dorms) {
+            if(key == arr.dormId) {
+              values.push(arr)
+            }
+          }
+        }
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-dorm/bat-add.do',
+          data: {
+            classId: this.classId,
+            buildingId: this.search.buildingId,
+            buildingName: this.search.buildingName,
+            floor: this.search.floor,
+            dorms: values
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功更新');
+            this.$emit('data-change', {});
+            this.state_show = false;
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+
+      },
+
+    },
+    init: function (query, search) {
+    }
+  })
+</script>
+<style>
+  .ul {
+    list-style: none;
+  }
+
+  .li {
+    float: left;
+    margin: 10px;
+  }
+</style>

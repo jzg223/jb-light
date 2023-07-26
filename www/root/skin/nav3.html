@@ -1,0 +1,176 @@
+<template>
+    <div id="admin-side" >
+        <div id="admin-navbar-side" lay-filter="side"  style="display: none;"></div>
+        <div class="skin_nav3_item flex" :class="x==currentNum?'current-active':''" v-for="(item,x) of navs" @click="goHref(item.href,x)">
+            <span class="skin_nav3_item_icon"><img :src="item.icon" alt=""></span>
+            <span class="skin_nav3_item_title">{{item.title}}</span>
+        </div>
+    </div>
+</template>
+<script>
+    //这里定义组件
+    Rap.define([], {
+        data() {
+            return {
+                currentNum: 0,
+                uifunctions: {},
+                uimodules: [],
+                nav_current: '',
+                navs: [],
+            }
+        },
+        methods: {
+            goHref(href, x) {
+                console.log(href);
+                this.currentNum = x;
+                if(href=='/core-manage/index.html') {
+                    window.location.href = href;
+                }else if(href=='/3d-show-2') {
+                    if(window.opener) {
+                        console.log(window.opener.name);
+                        window.open('javascript:;',window.opener.name);
+                    }else {
+                        window.location.href = href;
+                    }
+                }else if(href == 'pages/system') {
+                    window.location.href = '/core-manage/?#'+href;
+                }else {
+                    window.location.href = '#'+href;
+                }
+            },
+            onInit() {
+				this.navs.push({title:"加班管理",href:"/pages/jiaban",icon:'/assets/images/analyse/icons/icon_person.png',spread:1})
+                this.navs.push({title:"查哨管理",href:"/pages/chashao",icon:'/assets/images/analyse/icons/icon_device.png',spread:1})
+                this.navs.push({title:"车辆管理",href:"/pages/car",icon:'/assets/images/analyse/icons/icon_car.png',spread:1})
+                this.navs.push({title:"访客管理",href:"/pages/fangke",icon:'/assets/images/analyse/icons/icon_energy.png',spread:1})
+				this.navs.push({title:"事件管理",href:"/pages/event",icon:'/assets/images/analyse/icons/icon_event.png',spread:1})
+		
+                // whole_axios({
+                //     url: 'api/out/menu/take.do',
+                //     data: {
+                //         appName: appName,
+                //         roleName: this.$store.state.currentRoleName
+                //     },
+                //     method: 'POST'
+                // }).then(res => {
+                //     var root = res.data;
+                //     if (200 === root.code) {
+                //         this.uimodules = root.modules;
+                //         this.uifunctions = root.functions;
+
+                //         var navs = [];
+                //         var isfirst = true;
+                //         for (var module of root.modules) {
+
+                //             var list = root.functions[module.id];
+                //             var childs = [];
+                //             if (undefined != list) {
+                //                 for (var fun of list) {
+                //                     childs.push({
+                //                         "title": fun.name,
+                //                         "spread": isfirst,
+                //                         "href": fun.fullpath,
+                //                         "icon": fun.icon,
+                //                     })
+
+                //                 }
+                //             }
+                //             navs.push({
+                //                 "title": module.name,
+                //                 "icon": "fa-cubes",
+                //                 "spread": isfirst, "children": childs
+                //             });
+                //             isfirst = false
+                //         }
+                //         this.navs = navs[0].children;
+                //         this.onDraw(navs);
+                //     } else {
+                //         this.$Message.error({
+                //             content: '提取菜单失败: ' + root.message,
+                //             duration: 10
+                //         });
+                //     }
+                // }).catch(err => {
+                //     console.log(err)
+                //     this.$Message.error('提取菜单失败: ' + err);
+                // });
+            },
+            onDraw(navs) {
+                layui.config({
+                    base: '/layui/js/'
+                }).use(['navbar', 'tab'], function () {
+                    var navbar = layui.navbar();
+                    var tab = tab = layui.tab({
+                        elem: '.admin-nav-card' //设置选项卡容器
+                    });
+                    //设置navbar
+                    navbar.set({
+                        spreadOne: true,
+                        elem: '#admin-navbar-side',
+                        cached: true,
+                        data: navs
+                        /*cached:true,
+                        url: 'datas/nav.json'*/
+                    });
+                    //渲染navbar
+                    navbar.render();
+                    //监听点击事件
+                    navbar.on('click(side)', function (data) {
+                        // tab.tabAdd(data.field);
+                        console.log(data)
+                        Rap.go(data.field.href);
+                    });
+
+                    $('.admin-side-toggle').on('click', function () {
+                        var sideWidth = $('#admin-side').width();
+                        if (sideWidth === 200) {
+                            $('#admin-body').animate({
+                                left: '0'
+                            }); //admin-footer
+                            $('#admin-footer').animate({
+                                left: '0'
+                            });
+                            $('#admin-side').animate({
+                                width: '0'
+                            });
+                        } else {
+                            $('#admin-body').animate({
+                                left: '200px'
+                            });
+                            $('#admin-footer').animate({
+                                left: '200px'
+                            });
+                            $('#admin-side').animate({
+                                width: '200px'
+                            });
+                        }
+                    });
+
+                    //手机设备的简单适配
+                    var treeMobile = $('.site-tree-mobile'),
+                        shadeMobile = $('.site-mobile-shade');
+                    treeMobile.on('click', function () {
+                        $('body').addClass('site-mobile');
+                    });
+                    shadeMobile.on('click', function () {
+                        $('body').removeClass('site-mobile');
+                    });
+                });
+            }
+        },
+        created() {
+            // this.$root.$on('nav-change', (nav) => {
+            //     this.nav_current = nav;
+            // })
+            this.onInit();
+        },
+        mounted() {
+
+        },
+        init(query) {
+            this.nav_current = this.router.hash;
+        },
+    })
+</script>
+<style>
+</style>

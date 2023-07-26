@@ -1,0 +1,33 @@
+<textarea>
+    <!-- 未登录提示长裤 -->
+    <Modal
+        v-model="state_show"
+        title="未登录账号" mask-closable="false"
+        @on-ok="ok">
+        <p>当前操作需要登录，请先登录</p>
+    </Modal>
+</textarea>
+<script>
+    Rap.define([], {
+        props: {
+        },
+        data: function () {
+            return {
+                state_show:true
+            }
+        },
+        created: function () {
+        },
+        mounted() {
+        },
+        methods: {
+            ok(){
+                window.location.href = 'login.html';
+            }
+        },
+        init: function (query, search) {
+        },
+        watch: {
+        }
+    })
+</script>

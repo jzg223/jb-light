@@ -1,0 +1,228 @@
+<textarea>
+  <div v-if="state_load">
+    <Table ref="table" border highlight-row :columns="columns" :data="datas" @on-selection-change="onSelectedChange">
+      <template v-for="column of columns_slot" slot-scope="{ row,column, index }" :slot="column.slot">
+          <!-- <a href="javascript:;" @click="onEdit(row)">报名</a> -->
+          <slot :name='column.slot' :row="row" :index="index" :column="column"></slot>
+      </template>
+      <template slot-scope="{ row,column, index }" slot="dateTime">
+        <!-- <a href="javascript:;" @click="onEdit(row)">报名</a> -->
+        {{row[column.key] |dateTime }}
+      </template>
+      <template slot-scope="{ row,column, index }" slot="date">
+          <!-- <a href="javascript:;" @click="onEdit(row)">报名</a> -->
+          {{row[column.key] |date }}
+        </template>
+        <template slot-scope="{ row,column, index }" slot="time">
+            <!-- <a href="javascript:;" @click="onEdit(row)">报名</a> -->
+            {{row[column.key] |time }}
+          </template>
+      <template slot-scope="{ row,column, index }" slot="status">
+          {{row[column.key] |status }}
+      </template>
+      <template slot-scope="{ row,column, index }" slot="status2">
+          {{row[column.key] |status2 }}
+      </template>
+      <template slot-scope="{ row,column, index }" slot="file">
+        <a :href="fj_url+row[column.key]"><Icon type="md-attach" /></a>
+      </template>
+      <template slot-scope="{ row,column, index }" slot="seNo">
+        {{ index+ (pager.current-1)*pager.size +1}}
+      </template>
+      <template slot-scope="{ row,column, index }" slot="image">
+          <Avatar v-if="row[column.key]" :src="fj_url+row[column.key]" />
+      </template>
+    </Table>
+    <Row>
+      <Col span="6" style="padding-top:20px">
+        <slot name='opes'></slot>
+      </Col>
+      <Col span="18" style="text-align: right;">
+      <Page v-if="isShowPage" :total="pager.total" :current="pager.current" :page-size="pager.size" show-total show-elevator show-sizer
+        style="margin-top: 20px;" @on-change="pageChange" @on-page-size-change="pageSizeChange" />
+      </Col>
+    </Row>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    mixins: [mixin_common],
+    props: ['name', 'search', 'params'],
+    data: function () {
+      return {
+        datas: [],
+        datas_selected: [],
+        pager: {
+          total: 0,
+          size: 10,
+          current: 1
+        },
+        config: {},
+        columns: [],
+        columns_slot: [],
+        state_load: false,
+        isShowPage: false,//是否显示分页
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onSelectedChange(values) {
+        this.datas_selected = values;
+        this.$emit('datas-selected',values);
+      },
+      onSearch() {
+        this.pager.current = 1;
+        this.onRefersh();
+      },
+      onRefersh() {
+        if (undefined == this.config.url || '' == this.config.url) {
+          return;
+        }
+
+        var json = {
+          search: this.search,
+        };
+        if (true == this.isShowPage) {
+          json = {
+            search: this.search,
+            pageSize: this.pager.size,
+            pageNum: this.pager.current,
+          };
+        }
+        if (undefined != this.params) {
+          for (var key in this.params) {
+            json[key] = this.params[key];
+          }
+        }
+        instance_axios({
+          method: 'post',
+          url: this.config.url,
+          data: json
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var datas = root.datas;
+            this.datas = datas;
+            this.pager.total = root.total;
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      pageChange(current) {
+        this.pager.current = current;
+        this.onRefersh();
+      },
+      pageSizeChange(pageSize) {
+        this.pager.size = pageSize;
+        this.onRefersh();
+      },
+      onInit() {
+        design_axios({
+          method: 'post',
+          url: 'api/design/table/take.do',
+          data: {
+            name: this.name,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var config = root.config;
+            this.config = root.config;
+            var content = config.content;
+            if (1 === config.pager) {
+              this.isShowPage = true;
+            } else {
+              this.isShowPage = false;
+            }
+            if (undefined != config.pagesize && config.pagesize > 0) {
+              this.pager.size = config.pagesize;
+            }
+            this.columns = [];
+            this.columns_slot = [];
+            if (undefined != content && null != content && '' != content) {
+              var arr = JSON.parse(content);
+              for (var item of arr) {
+                var json = { title: item.title };
+                if (undefined != item.field) {
+                  json.key = item.field;
+                }
+                if (undefined != item.width && '' != item.width) {
+                  var strs = item.width.split(':');
+                  if(''!=strs[0]){
+                    json.width = parseInt(strs[0]);
+                  }
+                  if(strs.length>1){
+                    json.minWidth = parseInt(strs[1]);
+                  }
+                  if(strs.length>2){
+                    json.maxWidth = parseInt(strs[2]);
+                  }
+                }
+                if (undefined != item.formater && '' != item.formater) {
+                  json.slot = item.formater;
+                  this.columns_slot.push(json);
+                }
+                if ('dataSelect' == item.type) {
+                  json.type = 'selection';
+                } else if ('seNo' == item.type) {
+                  json.slot = "seNo";
+                }
+                if(undefined != item.fixed){
+                  json.fixed = item.fixed;
+                }
+                this.columns.push(json);
+              }
+              this.state_load = true;
+              this.onRefersh();
+            }
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      name: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      },
+      params: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            this.onSearch();
+          }
+        },
+        immediate: false
+      },
+      search: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            this.onSearch();
+          }
+        },
+        immediate: false
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

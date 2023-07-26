@@ -1,0 +1,122 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">线下参训人员名额分配</div>
+    <div class="panel-body">
+      <Row>
+        <Col span=6>
+        <Tree ref="tree" :data="nodes" @on-select-change="onSelect"></Tree>
+        </Col>
+        <Col span=18>
+          <Input v-model="amount" placeholder="输入名额" search enter-button="确定" @on-search="onValueChange"/>
+        </Col>
+      </Row>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['id', 'classInfo', 'ope'],
+    mixins: [mixin_trainclass],
+    data: function () {
+      return {
+        nodes: [],
+        node_select: {},
+        amount: 0,
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      doSubmit(name) {
+
+      },
+      onFinish() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-student.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onSelect(nodes) {
+        if (undefined != nodes && nodes.length > 0) {
+          this.node_select = nodes[0];
+        }
+      },
+      onValueChange() {
+        var nodes = this.$refs.tree.getSelectedNodes();
+        if (undefined != nodes && nodes.length > 0) {
+          var node = nodes[0];
+          node.value = this.amount;
+          node.title = node.name + '【' + this.amount + '】';
+        }
+
+        console.log(nodes);
+      },
+      onRefersh() {
+        var user = JSON.parse(window.localStorage.getItem("train_user"));
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/region/show-code.do',
+          data: {
+            code: user.properties.region
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var data = root.data;
+            var node = Object.assign({}, data);
+            node.key = data.id + '';
+            node.title = data.name;
+            node.selected = true;
+            node.expand = true;
+
+            var needs = [];
+            var childs = root.childs;
+            if (undefined != childs || 0 == childs.length) {
+              for (var item of childs) {
+                var need = Object.assign({}, item);
+                need.key = item.id + '';
+                need.title = item.name;
+                needs.push(need);
+              }
+            }
+            node.children = needs;
+            this.nodes = [node];
+            this.$emit("select-change", node);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.onRefersh();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

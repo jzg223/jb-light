@@ -1,0 +1,258 @@
+<textarea>
+  <Card>
+    <p slot="title">
+      <Icon type="ios-film-outline"></Icon>
+      表格视图处理
+    </p>
+    <span slot="extra">
+      <a href="#" @click.prevent="$refs.fill.onShow()">
+        <Icon type="ios-loop-strong"></Icon>
+        解析
+      </a>
+      <a href="#" @click.prevent="onAdd()">
+        <Icon type="ios-loop-strong"></Icon>
+        添加条目
+      </a>
+      <a href="#" @click.prevent="onSave()">
+        <Icon type="ios-loop-strong"></Icon>
+        保存
+      </a>
+    </span>
+
+    <table class="table" style="width:100%" border="1">
+      <tr>
+        <th class="th" style="width:50px">#</th>
+        <th class="th" style="width:150px">字段</th>
+        <th class="th" style="width:200px">标题</th>
+        <th class="th" style="width:150px">类型</th>
+        <th class="th" style="width:50px">宽度</th>
+        <th class="th" style="width:150px">表达式</th>
+        <th class="th" style="width:150px">slot</th>
+        <th class="th" style="width:100px">列固定</th>
+        <th class="th" style="width:180px">操作</th>
+      </tr>
+      <tr v-for="(column,index) of needs" :draggable="true" @dragstart="onDrag($event,index)" @drop="onDrop($event,index)"
+        @dragover="allowDrop($event)">
+        <td class="td">{{index+1}}</td>
+        <td class="td">
+            <Input v-model="column.field" placeholder="" />
+        </td>
+        <td class="td"><Input v-model="column.title" placeholder="" /></td>
+        <td class="td">
+          <Select v-model="column.type" filterable allow-create @on-create="onAddType">
+            <Option v-for="item in types" :value="item.value" :key="item.value">{{item.value}} - {{ item.title }}</Option>
+          </Select>
+        </td>
+        <td class="td"><Input v-model="column.width" placeholder="" /></td>
+        <td class="td"><Input v-model="column.express" placeholder="" /></td>
+        <td class="td"><Input v-model="column.formater" placeholder="" /></td>
+        <td class="td">
+          <Select v-model="column.fixed" clearable>
+            <Option v-for="item in fixtypes" :value="item.value" :key="item.value">{{item.value}} - {{ item.title }}</Option>
+          </Select>
+        </td>
+        <td class="td">
+          <Poptip transfer confirm title="确定删除该行数据?" @on-ok="onDelete(index)">
+            <Button type="error" size="small">删除</Button>
+          </Poptip> |
+          <Button @click="onUp(index)" size="small">上移</Button> |
+          <Button @click="onDown(index)" size="small">下移</Button>
+        </td>
+      </tr>
+    </table>
+    <view_sys_table_fill ref="fill" @data-change="onFill"></view_sys_table_fill>
+  </Card>
+</textarea>
+<script>
+  Rap.define(['fill'], {
+    props: ['tid', 'tinfo'],
+    data: function () {
+      return {
+        types: [
+          { 'value': 'normal', title: '普通列' },
+          { 'value': 'seNo', title: '序号列' }, { 'value': 'dictMean', title: '数据字典列' },
+          { 'value': 'dataSelect', title: '数据选择列' },
+          { 'value': 'dataView', title: '数据查看列' },
+          { 'value': 'dataEdit', title: '数据编辑列' },
+          { 'value': 'dataDelete', title: '数据删除列' },
+          { 'value': 'dataEditDelete', title: '数据编辑删除列' }],
+        fixtypes: [
+          { 'value': 'left', title: '左' },
+          { 'value': 'right', title: '右' },
+
+        ],
+        vid: '',
+        app: '',
+        needs: [{}],
+        info_basic: {},
+        info_table: {},
+        drag_start: -1,
+        drag_end: -1,
+        content_parse: ''
+      }
+    },
+    created: function () {
+
+    },
+    mounted() {
+
+    },
+    methods: {
+      onFill(lines) {
+        if (undefined == lines) {
+          return;
+        }
+        for (var line of lines) {
+          var field = line[0];
+          var title = line[line.length - 1];
+          this.needs.push({ 'title': title, 'field': field });
+        }
+      },
+      onUp(index) {
+        if (0 == index) {
+          return;
+        }
+        var temp = this.needs[index - 1];
+        this.needs[index - 1] = this.needs[index];
+        this.needs[index] = temp;
+        this.needs = Object.assign([], this.needs);
+      },
+      onDown(index) {
+        if (this.needs.length - 1 == index) {
+          return;
+        }
+        var temp = this.needs[index + 1];
+        this.needs[index + 1] = this.needs[index];
+        this.needs[index] = temp;
+        this.needs = Object.assign([], this.needs);
+      },
+      onFieldChange(index, event) {
+        for (var column of this.columns) {
+          if (event == column.tf_name) {
+            this.needs[index].title = column.tf_title;
+            return;
+          }
+        }
+
+      },
+      onDrag(e, index) {
+        this.drag_start = index;
+      },
+      onDrop(e, index) {
+        this.drag_end = index;
+        if (-1 != this.drag_start && -1 != this.drag_start) {
+          var temp = this.needs[this.drag_start];
+          this.needs[this.drag_start] = this.needs[this.drag_end];
+          this.needs[this.drag_end] = temp;
+        }
+        this.needs = Object.assign([], this.needs);
+        // const dragIndex = e.dataTransfer.getData("index");
+        // this.$parent.$parent.dragAndDrop(dragIndex,index);
+        e.preventDefault();
+      },
+      allowDrop(e) {
+        e.preventDefault();
+      },
+      onDelete(i) {
+        this.needs.splice(i, 1);
+      },
+      onAddType(val) {
+        this.types.push(value);
+      },
+      onAdd() {
+        this.needs.push({});
+      },
+      onInit() {
+        if (undefined != this.tinfo && undefined != this.tinfo.content && '' != this.tinfo.content) {
+          var json = JSON.parse(this.tinfo.content);
+          this.needs = json;
+        }
+      },
+
+      onFieldInit() {
+        axios.post('view/showTableFields.action', {
+          tt_name: this.info_basic.vv_mainTable,
+          currentApp: this.app
+        }).then(res => {
+          var root = res.data;
+          console.log(root);
+          if (200 === root.code) {
+            this.columns = root.datas;
+          } else {
+            // this.$Message.error('保存失败: ' + root.message);
+            this.$Message.error({
+              content: '提取菜单失败: ' + root.message,
+              duration: 10
+            });
+          }
+          // this.$route.meta.title = this.mainForm.vform.vf_title;
+          // this.currentForm = this.config.childForms["00391"];
+        }).catch(err => {
+          this.$Message.error('提取菜单失败: ' + err);
+        });
+      },
+      onSave() {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/table/update.do',
+          data: {
+            info: {
+              content: JSON.stringify(this.needs) + ' '
+            },
+            id: this.tid,
+          }
+        }).then(res => {
+          var root = res.data;
+          console.log(root);
+          if (200 === root.code) {
+            this.$Message.success('成功保存');
+            this.$emit("data-change", 0);
+          } else {
+            // this.$Message.error('保存失败: ' + root.message);
+            this.$Message.error({
+              content: '保存配置失败: ' + root.message,
+              duration: 10
+            });
+          }
+          // this.$route.meta.title = this.mainForm.vform.vf_title;
+          // this.currentForm = this.config.childForms["00391"];
+        }).catch(err => {
+          this.$Message.error('保存配置失败: ' + err);
+        });
+      }
+    },
+    init: function (query, search) {
+      this.vid = query.vid;
+      this.app = query.app;
+      this.onInit();
+    },
+    watch: {
+      tinfo: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .table {
+    border-collapse: collapse;
+
+  }
+
+  .td {
+    text-align: left;
+    padding: 5px;
+    border: 1px solid #eeeeee;
+  }
+
+  .th {
+    text-align: left;
+    border: 1px solid #eeeeee;
+    padding: 10px;
+  }
+</style>

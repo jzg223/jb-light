@@ -1,0 +1,211 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">考试成绩审核</div>
+    <div class="panel-body" >
+      <components_design_table v-if="params.examId" name="score-check" :params="params" :search="search" ref="table">
+        <template slot-scope="{ row, index }" slot="show">
+          <span v-if="row.state == 'ready'">未提交</span>
+          <span v-if="row.state == 'submited'">已提交</span>
+          <span v-if="row.state == 'confirmed'">已审核</span>
+        </template>
+        <template slot-scope="{ row, index }" slot="action">
+          <a href="javascript:;" v-if="'submited'==row.state" @click="onAgree(row)">通过</a>
+          <a href="javascript:;" v-if="'submited'==row.state" @click="onDeny(row)">驳回</a>
+        </template>
+        <template slot-scope="{ row, index }" slot="status">
+          {{row.status | status}}
+        </template>
+        <template slot-scope="{ row, index }" slot="createdTime">
+          {{row.createdTime | dateTime}}
+        </template>
+        <template slot="opes">
+          <Button type="primary" @click="onRefersh">刷新</Button>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定要通过?" @on-ok="onBatAgree">
+            <Button type="primary">批量通过</Button>
+          </Poptip>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定要驳回?" @on-ok="onBatDeny">
+            <Button type="primary">批量驳回</Button>
+          </Poptip>
+          <Button type="primary" @click="onFinish" v-if="'view'!=ope">完成设置</Button>
+        </template>
+      </components_design_table>
+    </div>
+    <div class="panel-body" v-if="'online'==classInfo.mode">
+      <Alert type="success">线上模型无需报道审核</Alert>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/design/table'], {
+    props: ['id', 'classInfo', 'ope'],
+    mixins: [mixin_trainclass],
+    data: function () {
+      return {
+        params: {},
+        search: {},
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      
+      onFinish(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-sign.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('完成设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onAgree(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/agree.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onDeny(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/deny.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onSelectedChange(values) {
+        this.datas_selected = values;
+      },
+      onBatAgree() {
+        if(0 == this.datas_selected.length){
+          this.$Message.warning('未选择数据');
+          return;
+        }
+        var ids = [];
+        for(var item of this.datas_selected){
+          ids.push(item.id);
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/bat-agree.do',
+          data: {
+            ids:ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('操作成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onBatDeny() {
+        if(0 == this.datas_selected.length){
+          this.$Message.warning('未选择数据');
+          return;
+        }
+        var ids = [];
+        for(var item of this.datas_selected){
+          ids.push(item.id);
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-student/bat-deny.do',
+          data: {
+            ids:ids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('操作成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      
+      onRefersh() {
+        this.$refs.table.onRefersh();
+      },
+      onInit(){
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/show-exam.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var info = int2str(root.data);
+            console.log(JSON.stringify(info));
+            this.params.examId = info.examId;
+            this.params = Object.assign({},this.params);
+          } else if (201 == root.code) {
+            this.info = {
+              startTime: new Date().getTime() / 1000 + '',
+              endTime: new Date().getTime() / 1000 + '',
+            };
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      }
+     
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

@@ -1,0 +1,76 @@
+<textarea>
+    <div>
+        {{nodes}}
+        <Cascader v-if="state_load" :data="nodes" @on-select-change="onSelect"></Cascader>
+    </div>
+    
+</textarea>
+<script>
+    Rap.define([], {
+        data() {
+            return {
+                nodes: [],
+                alls: [],
+                state_load:false
+            }
+        },
+        methods: {
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/dict-group/tree.do',
+                    data: {
+                        info: this.info,
+                        rid: this.rid
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        var alls = root.datas
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            if (0 === node.pid || null === node.pid) {
+                                needs.push({ 'value': node.id + '', 'label': node.name, 'children': this.findChilds(node.id, alls) });
+                            }
+                        }
+                        this.nodes = needs;
+                        this.state_load = true;
+                        console.info(JSON.stringify(needs));
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.parent_id) {
+                        needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(nodearray, node) {
+                if (nodearray.length > 0) {
+                    this.$emit("select-change", nodearray[0]);
+                } else {
+                    this.$emit("select-change", {});
+                }
+
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        init: function () {
+        }
+    })
+
+</script>

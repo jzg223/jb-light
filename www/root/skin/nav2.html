@@ -1,0 +1,142 @@
+<textarea>
+    <div class="sidebar-scroll">
+        <div class="sidebar-auto">
+            <h3 class="mypcip active"><span class="f14 cw" title="单击可显示/隐藏IP，双击可复制IP">{{title_manage}}</span></h3>
+            <ul class="menu">
+                <li id="memuA" :class="{'current':nav_current=='pages/welcome'}"> <a class="menu_home"
+                        href="#pages/welcome">首页</a></li>
+                <template v-for="(module,x) of uimodules">
+                    <template v-for="(uif,y) of uifunctions[module.id]">
+                        <li :class="{'current':nav_current==uif.fullpath}"> <a class="menu_logs"
+                                :href="'#'+uif.fullpath">{{uif.name}}</a></li>
+                    </template>
+                </template>
+                <li> <a class="menu_logs" href="javascript:goMOut()" >退出</a></li>
+            </ul>
+            <div id="memu_custom"><a class="memu_custom"  href="javascript:void(0)" @click="onSwitch">切换应用</a></div>
+        </div>
+        <Modal title="应用切换" :closable="true" v-model="state_show" width="1000">
+            <template v-for="(app,x) of apps">
+                <Button type="primary" @click="onAppChange(app)" style="margin-right:20px">{{app.app_title}}</Button>&nbsp;&nbsp;&nbsp;
+            </template>
+        </Modal>
+    </div>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define([], {
+        data() {
+            return {
+                uifunctions: {},
+                uimodules: [],
+                nav_current: 'pages/welcome',
+                state_show: false,
+                apps: [],
+            }
+        },
+        methods: {
+            onInit() {
+                whole_axios({
+                    url: 'api/out/menu/take.do',
+                    data: {
+                        appName: appName,
+                        roleName: this.$store.state.currentRoleName
+                    },
+                    method: 'POST'
+                }).then(res => {
+                    var root = res.data;
+                    if (200 === root.code) {
+                        this.uimodules = root.modules;
+                        this.uifunctions = root.functions;
+
+                        var navs = [];
+                        var isfirst = true;
+                        for (var module of root.modules) {
+                            var list = root.functions[module.id];
+                            var childs = [];
+                            if (undefined != list) {
+                                for (var fun of list) {
+                                    childs.push({
+                                        "title": fun.name,
+                                        // "spread": true,
+                                        "href": fun.fullpath,
+                                        "icon": fun.icon
+                                    })
+                                }
+                            }
+
+                            navs.push({
+                                "title": module.name,
+                                // "icon": "fa-cubes",
+                                "spread": (true == isfirst) ? true : false, "children": childs
+                            });
+                            isfirst = false
+                        }
+                        this.onDraw(navs);
+                    } else {
+                        this.$Message.error({
+                            content: '提取菜单失败: ' + root.message,
+                            duration: 10
+                        });
+                    }
+                }).catch(err => {
+                    console.log(err)
+                    this.$Message.error('提取菜单失败: ' + err);
+                });
+
+                whole_axios({
+                    url: 'api/out/app/list-my.do',
+                    data: {
+                    },
+                    method: 'POST'
+                }).then(res => {
+                    var root = res.data;
+                    if (200 === root.code) {
+                        this.apps = root.datas;
+                        if (undefined != root.datas && root.datas.length > 0) {
+                            var bexist = false;
+                            for (var app of root.datas) {
+                                if (appName == app.app_name) {
+                                    bexist = true; break;
+                                }
+                            }
+                            if (false == bexist) {
+                                // window.location.href = this.apps[0].app_homeurl;
+                            }
+                        }
+                    } else {
+                        this.$Message.error({
+                            content: '提取菜单失败: ' + root.message,
+                            duration: 10
+                        });
+                    }
+                }).catch(err => {
+                    this.$Message.error('提取菜单失败: ' + err);
+                });
+            },
+            onDraw(navs) {
+            },
+            onSwitch() {
+                this.state_show = true;
+            },
+            onAppChange(app){
+                window.location.href = app.app_homeurl
+            },
+            onOut() {
+
+            }
+        },
+        created() {
+            // this.$root.$on('nav-change', (nav) => {
+            //     this.nav_current = nav;
+            // })
+            this.onInit();
+        },
+        mounted() {
+
+        },
+        init(query) {
+            this.nav_current = this.router.hash;
+        },
+    })
+</script>

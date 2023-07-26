@@ -1,0 +1,143 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Drawer :title="'【'+step.title+'】后续操作维护'" :closable="true" v-model="state_show" width="700">
+        <template v-for="(item,x) of nexts">
+            <Form :model="item" inline>
+                <FormItem prop="key" label="">
+                    <Input type="text" v-model="item.key" placeholder="请输入key"  />
+                </FormItem>
+                <FormItem prop="title" label="">
+                    <Input type="text" v-model="item.title" placeholder="跳转名称"  />
+                </FormItem>
+                <FormItem prop="name" label="">
+                    <Select v-model="item.name" placeholder="选择节点" style="width:200px">
+                        <Option v-for="(step,x) of others" :key="x" :value="step.name">{{step.title}}</Option>
+                    </Select>
+                </FormItem>
+                <FormItem prop="order" label="">
+                    <Input type="text" v-model="item.order" placeholder="排序"  />
+                </FormItem>
+                <FormItem>
+                    <Input type="text" v-model="item.server" placeholder="后台地址"  />
+                </FormItem>
+                <FormItem>
+                    <Input type="text" v-model="item.users" placeholder="账号"  />
+                </FormItem>
+                <FormItem>
+                    <Input type="text" v-model="item.roles" placeholder="角色"  />
+                </FormItem>
+                <FormItem>
+                    <i-switch v-model="item.check"  >
+                        <span slot="open">检查</span>
+                        <span slot="close">不检查</span>
+                    </i-switch>
+                </FormItem>
+                <FormItem>
+                    <i-button icon="ios-remove" type="button" @click="onRemove(x)"></i-button>            
+                </FormItem>
+            </Form>
+            <Divider />
+        </template>
+
+        <i-button icon="ios-add" type="button" @click="onAdd"></i-button>
+        <i-button type="primary" @click="doSubmit('roleSelected')">提交</i-button>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['fid'],
+        data() {
+            return {
+                nexts: [],
+                id: 0,
+                state_show: false,
+                name_checked: '',
+                others: [],
+                step: {}
+            }
+        },
+        methods: {
+            onAdd() {
+                this.nexts.push({});
+            },
+            onRemove(x) {
+                this.nexts.splice(x, 1);
+            },
+            onShow(id) {
+                this.id = id;
+                this.state_show = true;
+                this.nexts = [];
+                console.log(this.state_show + " ---- " + this.id);
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/flow/show-step.do',
+                    data: {
+                        id: this.id
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        this.step = root.data;
+                        var info = root.data;
+                        var content = info.nexts;
+                        if (undefined != content && '' != content.trim()) {
+                            this.nexts = JSON.parse(content);
+                        }
+                        this.nexts = Object.assign([], this.nexts);
+                        this.others = root.others;
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                })
+            },
+            doRemove() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/flow/delete.do',
+                    data: {
+                        id: this.rid
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.$Message.success('删除成功');
+                        this.$emit('data-change', {});
+                        this.state_show = false;
+                        // this.getRoleListDataHandle()
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            doSubmit(name) {
+                var arr = Object.assign(this.nexts);
+                arr.sort(function (x, y) {
+                    return x.order - y.order;
+                })
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/flow/update-step.do',
+                    data: {
+                        info: {
+                            nexts: JSON.stringify(arr) + ' '
+                        },
+                        id: this.id
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.$Message.success('修改成功');
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

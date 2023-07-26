@@ -1,0 +1,154 @@
+<!-- 引用外部样式 -->
+<textarea>
+    <skin_card :title="'轮播图【'+entry.name+'】管理'">
+        <template slot="opes">
+            <a href="javascript:void(0)" @click="onAdd">添加</a>
+            <Divider type="vertical" />
+            <a href="javascript:void(0)" onclick="history.go(-1)">返回</a>
+        </template>
+        <template slot="body">
+            <i-form :model="formSearch" inline :label-width="140">
+                <FormItem prop="uf_title" label="角色:">
+                    <i-input type="text" v-model="formSearch.dm" placeholder="请输入角色" />
+                </FormItem>
+                <FormItem prop="uf_path" label="名称:">
+                    <i-input type="text" v-model="formSearch.mc" placeholder="请输入显示名称" />
+                </FormItem>
+                <FormItem>
+                    <i-button type="primary" @click="onSearch">搜索</i-button >
+                    <!-- <i-button type="default" @click="" style="margin-left: 20px">重置</i-button> -->
+                </FormItem>
+            </i-form>
+            <components_table v-if="params.bid>=0" :params="params" :columns="columns" :config="config" ref="table">
+                <template slot-scope="{ row, index }" slot="action">
+                    <i-button type="primary" size="small" style="margin-right: 5px" @click="onEdit(row)">修改</i-button>
+                </template>
+            </components_table>
+            <sys_banner_item :bid="bid" @data-change="onRefersh" ref="info"></sys_banner_item>
+        </template>
+    </skin_card>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define(['/sys/banner/item','/components/table'], {
+        data() {
+            return {
+                bid:0,
+                entry:{},
+                config: {
+                    url: 'api/sys/banner/list-item.do',
+                },
+                params:{
+                },
+                formSearch: {
+                    
+                },
+                columns: [
+                    {
+                        type: 'selection',
+                        width: 60,
+                        align: 'center'
+                    },
+                    {
+                        'title': '编号',
+                        'key': 'id',
+                        width: 90,
+                    },
+                    {
+                        'title': '名称',
+                        'key': 'title',
+                        width: 160,
+                    }, 
+                    {
+                        'title': '链接',
+                        'key': 'link',
+                        width: 160,
+                    }, 
+                    {
+                        'title': '图',
+                        'key': 'img',
+                        width: 160,
+                    }, 
+                    {
+                        title: '操作',
+                        slot: 'action',
+                        align: 'center',
+                    }
+                ],
+            }
+        },
+        methods: {
+            onInit(){
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/banner/show.do',
+                    data: {
+                        id: this.bid
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        this.entry = root.data;
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                })
+            },
+            onAssign(row) {
+                this.$refs.assign.onShow(row.id, row);
+            },
+            doBatRemove() {
+                //批量删除
+            },
+            onAdd() {
+                this.$refs.info.onAdd();
+            },
+            onEdit(row) {
+                this.$refs.info.onShow(row.id);
+            },
+            onSearch() {
+
+            },
+            onRefersh() {
+                if (undefined != this.$refs.table) {
+                    this.$refs.table.onRefersh();
+                }
+            },
+            onBatRemove() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/role/bat-remove.do',
+                    data: {
+                        pageNum: this.userPage.current,
+                        pageSize: this.userPage.size,
+                        search: this.formSearch
+                    }
+                }).then(res => {
+                    console.info(res)
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.datas = data.datas
+                        this.userPage.total = data.total
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+        },
+        created() {
+            this.params.level = this.$store.state.user.properties.level;
+        },
+        init: function (query) {
+            var id = query.id;
+            if(undefined!=id && id>0){
+                this.bid = id;
+                this.params.bid = id;
+                this.params = Object.assign({},this.params);
+                this.onInit();
+            }
+        }
+    })
+</script>

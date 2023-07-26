@@ -1,0 +1,42 @@
+<template>
+  <div class="card" style="border: 1px solid #7888fc;">
+    <img src="/assets/images/card-bg.png" class="card-img-top" alt="...">
+    <div class="card-body">
+      <h5 class="card-title">Card title</h5>
+      <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's
+        content.</p><a href="#" class="btn btn-primary">Go somewhere</a>
+    </div>
+  </div>
+</template>
+<script>
+  Rap.define([], {
+    props: ['title'],
+    data: function () {
+      return {};
+    },
+    created: function () { },
+    methods: {},
+    init: function (query, search) { },
+    watch: {},
+  });
+</script>
+<style>
+  .flex {
+    flex: 1 1 0% !important;
+  }
+
+  .card_title {
+    /* background: url(/whole-manage/assets/img/line.png) no-repeat; */
+    background-size: cover;
+    border-radius: initial;
+    margin-left: 30px;
+    height: 8px;
+  }
+
+  .card-header {
+    border-bottom: none;
+    margin-left: 15px;
+    font-size: 16px;
+    color: #000000;
+  }
+</style>

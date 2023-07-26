@@ -1,0 +1,78 @@
+<textarea>
+    <!-- 添加角色 -->
+    <div>
+        <Tree  v-if="1==state" :data="nodes" @on-select-change="onSelect"></Tree>
+        <!-- <List>
+            <ListItem v-for="item of alls">
+                <ListItemMeta :title="item.title" :description="item.remarks" />
+                <template slot="action">
+                    <li>
+                        <a href="">选择</a>
+                    </li>
+                </template>
+            </ListItem>
+        </List> -->
+    </div>
+    
+</textarea>
+<script>
+    Rap.define(['/components/list'], {
+        data() {
+            return {
+                nodes: [],
+                alls: [],
+                state: 0 // 状态
+            }
+        },
+        methods: {
+            onRefersh() {
+                this.state = 0;
+                var user = this.$store.state.user.uid;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/role/all.do',
+                    data: {
+                        level:this.$store.state.user.properties.level
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.state = 1;
+                        var alls = root.datas;
+                        this.alls = root.datas;
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            needs.push({ 'key': node.id + '', 'title': node.name+"-"+node.title, expand: true });
+                        }
+                        this.nodes = needs;
+                        this.nodes = Object.assign([],this.nodes);
+                        console.log(needs);
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onSelect(nodearray, node) {
+                console.info(JSON.stringify(nodearray));
+                if (nodearray.length > 0) {
+                    this.$emit("select-change", nodearray[0]);
+                } else {
+                    this.$emit("select-change", {});
+                }
+
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        init: function () {
+        }
+    })
+
+</script>

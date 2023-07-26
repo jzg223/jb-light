@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans   
+                        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd"
+	default-lazy-init="true">
+
+	<description>Shiro Configuration</description>
+
+	<bean id="propertyConfigurer_shiro"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="ignoreUnresolvablePlaceholders" value="true" />
+		<property name="locations">
+			<list>
+				<!-- value>/WEB-INF/classes/dbconfig.properties</value -->
+				<value>classpath*:/shiro.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="redisManager" class="org.crazycake.shiro.RedisManager">
+		<property name="host" value="${redis.host}" />
+		<property name="port" value="${redis.port}" />
+		<property name="expire" value="${redis.timeout}" />
+		<!-- optional properties: <property name="timeout" value="10000"/> <property 
+			name="password" value="123456"/> -->
+	</bean>
+
+	<!-- redisSessionDAO -->
+	<bean id="redisSessionDAO" class="com.honglian.core.shiro.HLRedisSessionDao">
+		<property name="redisManager" ref="redisManager" />
+		<property name="keyPrefix" value="${redis.prefix}"></property>
+	</bean>
+	<bean id="cacheManager" class="org.crazycake.shiro.RedisCacheManager">
+		<property name="redisManager" ref="redisManager" />
+	</bean>
+	<bean id="sharesession" class="org.apache.shiro.web.servlet.SimpleCookie">
+		<!-- cookie的name,对应的默认是JSESSIONID -->
+		<constructor-arg name="name" value="${redis.sessionname}" />
+		<!-- jsessionId的path为/用于多个系统共享jsessionId -->
+		<property name="path" value="/" />
+		<property name="httpOnly" value="false" />
+		<property name="maxAge" value="${redis.maxage}"></property>
+	</bean>
+	<bean id="sessionManager"
+		class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+		<property name="sessionDAO" ref="redisSessionDAO" />
+		<property name="sessionIdCookie" ref="sharesession" />
+	</bean>
+
+
+	<bean id="jwtDefaultSubjectFactory" class="com.honglian.core.jwt.JwtDefaultSubjectFactory"></bean>
+	<bean id="jwtDefaultSubjectDAO" class="com.honglian.core.jwt.JwtDefaultSubjectDAO"></bean>
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="myShiroRealm" />
+		
+		<!--
+		<property name="cacheManager" ref="cacheManager" /> 
+		<property name="sessionManager" ref="sessionManager"></property>
+		 -->
+		<property name="subjectFactory" ref="jwtDefaultSubjectFactory"></property>
+		<property name="subjectDAO" ref="jwtDefaultSubjectDAO"></property>
+	</bean>
+
+	<!-- 項目自定义的Realm -->
+	<bean id="myShiroRealm" class="com.honglian.core.jwt.JwtRealm">
+		<property name="cacheManager" ref="cacheManager" />
+	</bean>
+
+	<!-- Shiro Filter -->
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager" />
+		<property name="loginUrl" value="${loginurl}" />
+		<property name="successUrl" value="/loginsuccess.jhtml" />
+		<property name="unauthorizedUrl" value="/error.jhtml" />
+
+		<property name="filters">
+			<map>
+				<entry key="jwt">
+					<bean class="com.honglian.core.jwt.JwtFilter"></bean>
+				</entry>
+			</map>
+		</property>
+
+		<property name="filterChainDefinitions">
+			<value>
+				/userLogin.do = anon
+				/jwt/** = anon
+				/logout.do = anon
+				/api/anon/** = anon
+
+				/edu/api/edu/** = anon
+				/api/anon/** = anon
+				/cert/** = anon
+				/cms/** = anon
+				/board/api/anon/** = anon
+				/excelImport.do = anon
+				/notify.do = anon
+				/notify-test.do = anon
+				/api/artmis/camera/takeLiveUrl.do = anon
+				/** = jwt
+			</value>
+		</property>
+	</bean>
+
+	<!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+	<bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor" />
+
+	<!-- AOP式方法级权限检查 -->
+	<bean
+		class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"
+		depends-on="lifecycleBeanPostProcessor">
+		<property name="proxyTargetClass" value="true" />
+	</bean>
+
+	<bean
+		class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+		<property name="securityManager" ref="securityManager" />
+	</bean>
+
+</beans>  

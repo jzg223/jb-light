@@ -1,0 +1,43 @@
+<template>
+    <div class="card">
+        <div class="card-header d-flex">
+            <ul class="nav nav-pills card-header-pills flex">
+                <li class="nav-item" v-if="title">
+                    <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">{{title}}</a>
+                </li>
+                <li v-for="(item,x) of navs" :key="x" class="nav-item">
+                    <a class="nav-link " :class="{'active':x==nav_current}" href="javascript:;" @click="nav_current=x">{{item}}</a>
+                </li>
+            </ul>
+            <template v-for="(item,x) of navs" >
+                <div style="padding-top:5px" v-if="$slots['__'+x] && x==nav_current">
+                    <slot :name="'__'+x" ></slot>
+                </div>
+                </template>
+        </div>
+        
+        <div class="card-body">
+            <template v-for="(item,x) of navs" >
+                <div v-show="x==nav_current"><slot :name="'_'+x" ></slot></div>
+            </template>
+        </div>
+    </div>
+</template>
+<script>
+    Rap.define([], {
+        props: ['navs','title'],
+        data: function () {
+            return {
+                nav_current:0
+            }
+        },
+        created: function () {
+        },
+        methods: {
+        },
+        init: function (query, search) {
+        },
+        watch: {
+        }
+    })
+</script>

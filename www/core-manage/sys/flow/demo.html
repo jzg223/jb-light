@@ -1,0 +1,256 @@
+<template>
+  <div><Button type="primary" @click="onCopy" class="btn">复制代码</Button>
+  <pre>
+  &lt;textarea&gt;
+      &lt;div class="cd-layout-aside"&gt;
+        &lt;div class="cd-layout-aside_bread"&gt;&lt;/div&gt;
+        &lt;div class="cd-layout-adside_content"&gt;
+          &lt;div class="page-header clearfix pvm"&gt;
+            &lt;h1 class="pull-left"&gt;
+                {{flowInfo.title}}【<span v-html="'{{info.title}}'"></span>】管理
+            &lt;/h1&gt;
+            &lt;div class="pull-right"&gt;
+                &lt;Button size="small" @click="history.go(-1)"&gt;返回&lt;/Button&gt;
+                &lt;!-- &lt;Button v-if="'draft'!=info.status"  @click="onPre" size="small"&gt;返回上一步&lt;/Button&gt;
+                &lt;Button v-if="'finished'!=info.status" @click="onNext" size="small"&gt;下一步&lt;/Button&gt; --&gt;
+                &lt;template v-for="item of nexts"&gt;
+                    &lt;Button @click="onNext(item)" size="small"&gt;<span v-html="'{{item.title}}'"></span>&lt;/Button&gt;
+                &lt;/template&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;components_design_flow ref="flow" v-if="info.id" @data-change="onChange" :url_current="url_current" @nexts-change="nexts=$event" 
+          flowName="{{flowInfo.name}}" :status="info.status" :status_flow="status_flow"&gt;&lt;/components_design_flow&gt;
+        &lt;br&gt;
+        
+        &lt;!-- &lt;Tabs type="card" @on-click="onTypeChange" v-model="type_current"&gt;
+          &lt;TabPane v-for="item of types" :name="item.name" :key="item.name" :label="item.title"&gt;&lt;/TabPane&gt;
+        &lt;/Tabs&gt; --&gt;
+        &lt;component v-bind:is="url_current" @data-change="onRefersh" :auth="auth"
+          :id="id" :reportInfo="info"&gt;&lt;/component&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/textarea&gt;
+  &lt;script&gt;
+    Rap.define(['/components/design/flow'], {
+      mixins: [mixin_common],
+      props: {
+      },
+      data: function () {
+        return {
+          id: 0,
+          info: {},
+          url_current: '',
+          auth: '',
+          status_flow: {},
+          nexts:[]
+        }
+      },
+      mounted() {
+      },
+      methods: {
+        onChange(json) {
+          this.url_current = json.url;
+          this.auth = json.auth;
+        },
+        onPre() {
+          this.$Modal.confirm({
+            title: '流程提交',
+            content: '&lt;p&gt;确定要返回上一步?&lt;/p&gt;',
+            onOk: () =&gt; {
+              this.doPre();
+            },
+            onCancel: () =&gt; {
+            }
+          });
+        },
+        doPre() {
+          var url = 'go-';
+          if ('check' == this.info.status) {
+            url = 'go-draft.do';
+          } else if ('auth' == this.info.status) {
+            url = 'go-check.do';
+          } else if ('finished' == this.info.status) {
+            url = 'go-auth.do';
+          }
+          instance_axios({
+            method: 'post',
+            url: 'api/office/org/' + url,
+            data: {
+              id: this.id
+            }
+          }).then(res =&gt; {
+            let root = res.data
+            if (root.code === 200) {
+              this.$Message.success("成功执行");
+              this.onRefersh();
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err =&gt; {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        },
+        onNext(item) {
+          if(undefined == item.server || '' == item.server.trim()){
+            this.$Message.error("动作未配置后端接口");
+            return;
+          }
+          if (false === this.$refs.flow.canNext()) {
+            return;
+          }
+  
+          this.$Modal.confirm({
+            title: '流程提交',
+            content: '&lt;p&gt;确定要提交'+item.title+'&lt;/p&gt;',
+            onOk: () =&gt; {
+              this.doNext(item);
+            },
+            onCancel: () =&gt; {
+            }
+          });
+        },
+        doNext(config) {
+          instance_axios({
+            method: 'post',
+            // url: 'api/**/**/next.do',
+            url: config.server,
+            data: {
+              id: this.id,
+              config: config
+            }
+          }).then(res =&gt; {
+            let root = res.data
+            if (root.code === 200) {
+              this.$Message.success("成功执行");
+              this.onRefersh();
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err =&gt; {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        },
+        onRefersh() {
+          instance_axios({
+            method: 'post',
+            url: 'api/**/**/show.do',
+            data: {
+              id: this.id
+            }
+          }).then(res =&gt; {
+            let root = res.data
+            if (root.code === 200) {
+              this.info = root.data;
+              this.status_flow = root.status;
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err =&gt; {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        },
+  
+      },
+      init: function (query, search) {
+        var id = query.id;
+        if (undefined != id && 0 != id) {
+          this.id = id;
+          this.onRefersh();
+        }
+      },
+      watch: {
+      }
+    })
+  &lt;/script&gt;
+</pre>
+</div>
+</template>
+<script>
+  Rap.define([], {
+    props: ['fid', 'flowInfo', 'ope'],
+    data: function () {
+      return {
+        info: {
+        },
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+        },
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    mounted() {
+    },
+    methods: {
+      onCopy() {
+        var clipboard = new ClipboardJS('.btn', {
+          target: function () {
+            return document.querySelector('pre');
+          }
+        });
+
+        clipboard.on('success', function (e) {
+          console.log(e);
+          alert('复制成功！')
+        });
+
+        clipboard.on('error', function (e) {
+          console.log(e);
+        });
+      },
+      doSubmit(name) {
+        var user = this.$store.state.user.uid;
+        this.$refs[name].validate((valid) => {
+          if (valid) {
+            var info = Object.assign({}, this.info);
+            instance_axios({
+              method: 'post',
+              url: 'api/sys/form/update.do',
+              data: {
+                info: info,
+                id: this.fid,
+              }
+            }).then(res => {
+              let root = res.data
+              if (root.code === 200) {
+                this.$Message.success('成功设置');
+                this.$emit('data-change', {});
+                // this.getRoleListDataHandle()
+              } else {
+                this.$Message.error(root.message)
+              }
+            })
+          } else {
+            this.$Message.warning('部分项为空');
+          }
+        });
+
+      },
+      onInit() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      formInfo: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.formInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

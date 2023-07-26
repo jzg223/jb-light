@@ -1,0 +1,123 @@
+<textarea>
+    <Drawer v-model="state_show" title="成绩导入" width="600">
+        <div class="alert alert alert-primary" role="alert">
+            <p><a href="template.xlsx">导入模板下载</a></p>
+          </div>
+        <Upload :multiple="1==0" ref="upload" :action="whole_server+'excelImportAll.do'" type="drag" :name="'upload'" accept="*.xlsx"
+            :on-success="onImportSuccess">
+            <div style="padding: 20px 0">
+                <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"></Icon>
+                <p>点击或拖动文件上传</p>
+            </div>
+        </Upload>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define([], {
+        props: [
+            'classId','classInfo'
+        ],
+        data() {
+            return {
+                state_show: false,
+                courses:[],
+                stus:[]
+            }
+        },
+        methods: {
+            onShow(courses,stus) {
+                this.courses = courses;
+                this.stus = stus;
+                this.state_show = true;
+            },
+            onImportSuccess(res) {
+
+                var needs = [];
+                var sheetNames = res.sheetNames;
+                var sheets = res.sheets;
+                var map_course = {};
+                for(var course of this.courses){
+                    map_course[course.name] = course.id;
+                }
+                var map_stu = {};
+                for(var stu of this.stus){
+                    map_stu[stu.xm] = stu.userId;
+                }
+
+                var scores = [];
+                for(var sheetName of sheetNames){
+                    var courseId = map_course[sheetName];
+                    if(undefined==courseId){
+                        this.$Message.error("课程【"+sheetName+"】不存在");
+                        return;
+                    }
+                    needs.push(courseId);
+
+                    var rows = sheets[sheetName];
+                    if(undefined==rows ||0==rows.length){
+                        this.$Message.error("课程【"+sheetName+"】数据为空");
+                        return;
+                    }
+                    for(var x=1;x<rows.length;x++){
+                        var row = rows[x];
+                        var xm = row[1];
+                        var userId = map_stu[xm];
+                        var score = row[3];
+                        var json = {
+                            courseId: courseId,
+                            courseName: sheetName,
+                            userId:userId,
+                            score: score
+                        }
+                        scores.push(json);
+                    }
+                }
+
+                this.$refs.upload.clearFiles();
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/train-class-score/import-do.do',
+                    data: {
+                        classId: this.classId,
+                        scores: scores,
+                        courses: needs
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.$Message.success("成功导入");
+                        this.$emit("data-change", {});
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onBeforeUpload(file) {
+
+            }, 
+            
+        },
+        created() {
+        }
+    });
+</script>
+<style>
+    .td {
+        border: 1px solid #ccc;
+        word-break: break-all;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .error {
+        border: 1px solid #ccc;
+        word-break: break-all;
+        min-width: 50px;
+        background: yellow;
+        color: red;
+        text-align: center;
+    }
+</style>

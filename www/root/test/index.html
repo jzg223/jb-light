@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <script src="/static/vue-3.3.4.js"></script>
+    <script src="/static/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script> -->
+</head>
+
+<body>
+    <div id="my-app">
+        <my-component></my-component>
+        {{message}}
+    </div>
+
+    <script type="text/javascript">
+
+        ; (async () => {
+            const options = {
+                moduleCache: { vue: Vue },
+                getFile(url) {
+                    return fetch(url).then(res => {
+                        if (!res.ok) throw Object.assign(new Error(url + ' ' + res.statusText), { res });
+                        // ----------------------
+                        return res.text().then(content => {
+                            if (/.*?\.js$/.test(url)) {
+                                return { content: content, type: ".mjs" }
+                            }
+                            return content;
+                        });
+                    })
+                },
+                addStyle(textContent) {
+                    document.head.insertBefore(
+                        Object.assign(document.createElement('style'), { textContent }),
+                        document.head.getElementsByTagName('style')[0] || null);
+                },
+            };
+            const { loadModule } = window['vue3-sfc-loader'];
+            const loadVue = (vuePath) => loadModule(vuePath, options);
+            const loadVueFile = (vuePath) => () => loadVue(vuePath);
+            let routes = [
+                /*首页*/
+                { path: '/', component: loadVueFile('./index.vue') },
+            ]
+            const args = { name: 'app', components: { 'layout': await loadVue('./layout.vue') } };
+            const app = Vue.createApp(args)
+            app.use(VueRouter.createRouter({ history: VueRouter.createWebHashHistory(), routes: routes }))
+            app.mount("#my-app")
+        })().catch(ex => console.error(ex));
+
+
+        // const options = {
+
+        //     moduleCache: {
+        //         vue: Vue
+        //     },
+
+        //     async getFile(url) {
+
+        //         const res = await fetch(url);
+        //         if (!res.ok)
+        //             throw Object.assign(new Error(url + ' ' + res.statusText), { res });
+        //         return await res.text();
+        //     },
+
+        //     addStyle(textContent) {
+
+        //         const style = Object.assign(document.createElement('style'), { textContent });
+        //         const ref = document.head.getElementsByTagName('style')[0] || null;
+        //         document.head.insertBefore(style, ref);
+        //     },
+        // }
+
+        // const { loadModule } = window['vue3-sfc-loader'];
+
+        // Vue.createApp({
+        //     data() {
+        //         return {
+        //             message: '我是xxx'
+        //         }
+        //     },
+        //     methods: {
+        //     },
+        //     components: {
+        //         'my-component': Vue.defineAsyncComponent(() => loadModule('./myComponent.vue', options))
+        //     }
+        // }).mount('#my-app')
+    </script>
+</body>
+
+</html>

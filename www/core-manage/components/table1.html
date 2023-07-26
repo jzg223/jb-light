@@ -1,0 +1,203 @@
+<textarea>
+  <div class="row">
+    <div class="col-12">
+      <slot name='body' :datas="datas"></slot>
+    </div>
+    <div class="col-3" v-if="$slots.ops">
+      <slot name='opes'></slot>
+    </div>
+    <div class="col-9"  v-if="$slots.ops">
+      <Page v-if="isShowPage" :total="pager.total" :current="pager.current" :page-size="pager.size" show-total show-elevator show-sizer
+      style="margin-top: 20px;" @on-change="pageChange" @on-page-size-change="pageSizeChange" />
+    </div>
+    <div class="col-12"  v-if="undefined==$slots.ops">
+      <Page v-if="isShowPage" :total="pager.total" :current="pager.current" :page-size="pager.size" show-total show-elevator show-sizer
+      style="margin-top: 20px;" @on-change="pageChange" @on-page-size-change="pageSizeChange" />
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    mixins: [mixin_common],
+    props: ['columns', 'search', 'params', 'config'],
+    data: function () {
+      return {
+        datas: [],
+        datas_selected: [],
+        pager: {
+          total: 0,
+          size: 10,
+          current: 1
+        },
+        config: {},
+        columns_slot: [],
+        state_load: false,
+        isShowPage: false,//是否显示分页
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onSelectedChange(values) {
+        this.datas_selected = values;
+        this.$emit('datas-selected', values);
+      },
+      onSearch() {
+        this.pager.current = 1;
+        this.onRefersh();
+      },
+      onRefersh() {
+        if (undefined == this.config.url || '' == this.config.url) {
+          return;
+        }
+        var json = {
+          search: this.search,
+        };
+        if (false === this.config.isShowPage) {
+
+        } else {
+          this.isShowPage = true;
+          json = {
+            search: this.search,
+            pageSize: this.pager.size,
+            pageNum: this.pager.current,
+          };
+        }
+        if (undefined != this.params) {
+          for (var key in this.params) {
+            json[key] = this.params[key];
+          }
+        }
+        instance_axios({
+          method: 'post',
+          url: this.config.url,
+          data: json
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var datas = root.datas;
+            this.datas = datas;
+            this.pager.total = root.total;
+            this.$emit("total-change", root.total);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      pageChange(current) {
+        this.pager.current = current;
+        this.onRefersh();
+      },
+      pageSizeChange(pageSize) {
+        this.pager.size = pageSize;
+        this.onRefersh();
+      },
+      onInit() {
+      },
+      onExport() {
+        //excel导出
+        this.$refs.table.exportCsv({
+          filename: 'Sorting and filtering data',
+          original: true
+        });
+      },
+      onPrint() {
+        var tables = $('#' + this.id_print).find("table");
+        if (undefined == tables || 0 == tables.length) {
+          this.$Message.error("无法打印");
+          return;
+        }
+        var printTable = $("#" + this.id_print + "table");
+        var trNew = $("<tr></tr>");
+        var ths = $(tables[0]).find("th");
+        for (var x = 0; x < ths.length; x++) {
+          var column = this.columns[x];
+          var width = this.columns[x].width;
+          if ('seNo' == column.slot || 'selection' == column.type || 'action' == column.slot) {
+            continue;
+          }
+          var th = $('<th class="th" >' + $(ths[x]).text() + '</th>');
+          if (undefined != width) {
+            var th = $('<th class="th" width="' + width + 'px">' + $(ths[x]).text() + '</th>');
+          }
+
+          trNew.append(th);
+        }
+        printTable.append(trNew);
+
+        var trs = $(tables[1]).find("tr");
+        for (var x = 0; x < trs.length; x++) {
+          var tds = $(trs[x]).find("td");
+          var trNew = $("<tr/>");
+          for (var y = 0; y < tds.length; y++) {
+            var column = this.columns[y];
+            if ('seNo' == column.slot || 'selection' == column.type || 'action' == column.slot) {
+              continue;
+            }
+            var td = $('<td class="td" >' + $(tds[y]).text() + '</td>');
+            trNew.append(td);
+          }
+          printTable.append(trNew);
+        }
+        var html = '<style>.table {    border-collapse: collapse;    border: 1px solid #ccc;  }';
+        html += '.td {    text-align: left;    padding: 5px;    border: 1px solid #eeeeee;  }';
+        html += '.th {    text-align: left;    border: 1px solid #eeeeee;    padding: 10px;  }</style>';
+        html += $('#' + this.id_print + "div").html();
+        this.doPrint(html);
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      params: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            this.onSearch();
+          }
+        },
+        immediate: false
+      },
+      config: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            if (undefined != this.config.pageSize) {
+              this.pager.size = this.config.pageSize;
+            }
+            this.onRefersh();
+          }
+        },
+        immediate: true
+      },
+      search: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            this.onSearch();
+          }
+        },
+        immediate: false
+      }
+    }
+  })
+</script>
+<style>
+  .table {
+    border-collapse: collapse;
+    border: 1px solid #ccc;
+  }
+
+  .td {
+    text-align: left;
+    padding: 5px;
+    border: 1px solid #eeeeee;
+  }
+
+  .th {
+    text-align: left;
+    border: 1px solid #eeeeee;
+    padding: 10px;
+  }
+</style>

@@ -1,0 +1,28 @@
+<template>
+    <blockquote class="layui-elem-quote">
+        <p v-if="title">{{title}}</p>
+        <p v-if="$slots.body"><slot name="body"></slot></p>
+    </blockquote>
+</template>
+<script>
+    Rap.define([], {
+        props: ['title','desc'],
+        data: function () {
+            return {
+            }
+        },
+        created: function () {
+        },
+        methods: {
+        },
+        init: function (query, search) {
+        },
+        watch: {
+        }
+    })
+</script>
+<style>
+    .flex {
+        flex: 1 1 0% !important;
+    }
+</style>

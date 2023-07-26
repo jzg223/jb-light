@@ -1,0 +1,67 @@
+<textarea>
+  <Drawer title="日志预览" :closable="true" v-model="state_show" width="500">
+    <Tabs value="name1" v-if="info.id">
+      <TabPane label="输入" name="name1"><div v-html="input"></div></TabPane>
+      <TabPane label="输出" name="name2"><div v-html="output"></div></TabPane>
+    </Tabs>
+  </Drawer>
+</textarea>
+<script>
+  Rap.define([], {
+    data: function () {
+      return {
+        info: {
+        },
+        state_show: false
+      }
+    },
+    computed:{
+      input(){
+        return "<pre>" + this.prettyFormat(this.info.input) + "</pre>"
+      },
+      output(){
+        return "<pre>" + this.prettyFormat(this.info.output) + "</pre>"
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      prettyFormat(str) {
+        try {
+          // 设置缩进为2个空格
+          str = JSON.stringify(JSON.parse(str), null, 2);
+          str = str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+          return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            var cls = 'number';
+            if (/^"/.test(match)) {
+              if (/:$/.test(match)) {
+                cls = 'key';
+              } else {
+                cls = 'string';
+              }
+            } else if (/true|false/.test(match)) {
+              cls = 'boolean';
+            } else if (/null/.test(match)) {
+              cls = 'null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+          });
+        } catch (e) {
+          alert("异常信息:" + e);
+        }
+      },
+      onShow(row) {
+        this.state_show = true;
+        this.info = row;
+        this.info = Object.assign({}, this.info);
+      },
+    },
+    init: function (query, search) {
+    },
+  })
+</script>

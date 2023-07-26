@@ -1,0 +1,60 @@
+<textarea>
+    <!-- 角色选择组件 -->
+    <div>
+        <Select v-model="selecteds" multiple @on-change="onSelect">
+            <Option v-for="item in alls" :value="item.id" :key="item.id">{{item.name}}-【{{ item.title }}】</Option>
+        </Select>
+    </div>
+    
+</textarea>
+<script>
+    Rap.define([], {
+        props:['value'],
+        data() {
+            return {
+                alls: [],
+                selecteds:[]
+            }
+        },
+        methods: {
+            onRefersh() {
+                var user = this.$store.state.user.uid;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/role/all.do',
+                    data: {
+                        level:this.$store.state.user.properties.level
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.alls = data.datas
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onSelect(nodearray) {
+                if (nodearray.length > 0) {
+                    this.$emit("select-change", nodearray);
+                } else {
+                    this.$emit("select-change", []);
+                }
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        watch:{
+            value:function(newval,oldval){
+                console.info(newval+"----abc");
+                this.selecteds = newval;
+            }
+        },
+        init: function () {
+        }
+    })
+
+</script>

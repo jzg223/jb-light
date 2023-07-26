@@ -1,0 +1,133 @@
+<textarea>
+    <Drawer title="导入参训人员"  @on-close="state_show=false" :mask-closable="false" :value="state_show" width="800"  :closable="true">
+        <view_sys_components_excelImport v-if="state_show" ref="excel" @on-data-change="onDataChange" 
+            :rowCheck="rowCheck" :startRow="1">
+        </view_sys_components_excelImport>
+        <div style="padding:10px;"></div>
+        <Poptip transfer="true"  confirm title="确定要导入?" @on-ok="doSubmit">
+            <Button>提交</Button>
+        </Poptip>
+        <Button @click="checkAgain"  style="margin: 0 16px 0 15%">重新检测</Button>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define(['/sys/components/excelImport'], {
+        data() {
+            return {
+                state_show: false,
+                ids: {},// 证件号集合
+                datas: [], // 待上传数据,json
+                classId:0,
+                state:0
+            }
+        },
+        methods: {
+            handleSubmit(name) {
+                this.$refs[name].validate((valid) => {
+                    if (valid) {
+                        this.onInit();
+                    } else {
+                        this.$Message.error('部分输入为空');
+                    }
+                })
+
+            },
+            rowCheck(row) {
+                var idcard = row[4];
+                if (undefined != this.ids[idcard]) {
+                    return '证件号重复';
+                }
+            },
+            onDataChange(datas) {
+                if (undefined != datas) {
+                    for (var json of datas) {
+                        console.log(JSON.stringify(json));
+                        this.datas.push({
+                            xm: json[0],
+                            dw: json[1],
+                            jh: json[2],
+                            idcard: json[3],
+                        })
+                    }
+                }
+            },
+            doSubmit() {
+                if (0 == this.datas.length) {
+                    this.$Message.error('未上传excel或未正常读取excel');
+                    return;
+                }
+                var datas = this.datas;
+                datas = datas.slice(1);
+                var _this = this;
+                instance_axios({
+                    url: 'api/manage/train-class-student/import.do',
+                    data: {
+                        useTrans: 1,
+                        datas: datas,
+                        classId: this.classId
+                    },
+                    method: 'POST'
+                }).then(res => {
+
+                    var root = res.data;
+                    if (200 !== root.code) {
+                        _this.$Message.error(root.message);
+                        
+                        return;
+                    } else {
+                        _this.$Message.success("导入成功");
+                        _this.$emit('data-change',0);
+                    }
+                }).catch(err => {
+                    _this.$Message.error('加载失败: ' + err);
+                });
+            },
+            onInit(onSuccess) {
+                var _this = this;
+                this.ids = {};
+
+                instance_axios({
+                    url: 'api/manage/train-class-student/for-check.do',
+                    data: {
+                        classId: this.classId
+                    },
+                    method: 'POST'
+                }).then(res => {
+                    var root = res.data;
+                    if (200 !== root.code) {
+                        _this.$Message.error(root.message);
+                        return;
+                    } else {
+                        this.state = 1;
+                        var datas = root.datas;
+                        if (undefined != datas) {
+                            for (var item of datas) {
+                                this.ids[item.idcard] = item;
+                            }
+                        }
+                        if (undefined != onSuccess) {
+                            onSuccess();
+                        }
+                    }
+                }).catch(err => {
+                    _this.$Message.error('加载失败: ' + err);
+                });
+            },
+            checkAgain() {
+                var _this = this;
+                this.onInit(function () {
+                    _this.$refs.excel.onReload();
+                });
+            },
+            onShow(classId){
+                console.log('-------------------'+this.state_show);
+                this.classId = classId;
+                this.state_show = false;
+                this.state_show = true;
+                this.onInit();
+            }
+        },
+        created() {
+        }
+    });
+</script>

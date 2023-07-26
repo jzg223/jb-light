@@ -1,0 +1,53 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Tree :data="nodes" @on-select-change="onSelect"></Tree>
+</textarea>
+<script>
+    Rap.define([], {
+        data() {
+            return {
+                nodes: [],
+                alls: []
+            }
+        },
+        methods: {
+            onRefersh() {
+                findAuthGroupAlls().then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var alls = root.datas;
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            needs.push({ 'key': node.id+'', 'title': node.title, expand: true });
+                        }
+                        this.nodes = needs;
+                        console.info(JSON.stringify(needs));
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onSelect(nodearray,node){
+                console.info(JSON.stringify(nodearray));
+                if(nodearray.length>0){
+                    this.$emit("module-change",nodearray[0]);
+                }else{
+                    this.$emit("module-change",{});
+                }
+                
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        init: function () {
+        }
+    })
+
+</script>

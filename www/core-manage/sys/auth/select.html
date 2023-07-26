@@ -1,0 +1,109 @@
+<textarea>
+    <!-- 界面资源树组件，供授权组件调用 -->
+    <Collapse v-model="value1">
+        <Panel v-for="(list,group) of alls" :name="group" v-bind:key="group">
+            {{group}}
+            <p slot="content">
+                <span  v-for="(item,x) of list" :key="item.code" >
+                        <Divider v-if="0!=x" type="vertical" />&nbsp;&nbsp;<Checkbox v-model="map[item.code]">{{item.mean}}</Checkbox>
+                </span>
+            </p>
+        </Panel>
+    </Collapse>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['value'],
+        data() {
+            return {
+                value1: '系统管理',
+                alls: {
+                    "系统管理": [
+                        {
+                            "code": "user_manage",
+                            "mean": "账号管理"
+                        },
+                        {
+                            "code": "user_add",
+                            "mean": "添加账号"
+                        },
+                        {
+                            "code": "user_update",
+                            "mean": "更新账号"
+                        },
+                        {
+                            "code": "user_delete",
+                            "mean": "删除账号"
+                        }
+                    ],
+                    "资产审核": [
+                        {
+                            "code": "check_add",
+                            "mean": "登记审核"
+                        },
+                        {
+                            "code": "check_change",
+                            "mean": "变更审核"
+                        },
+                        {
+                            "code": "dispose_add",
+                            "mean": "处置审核"
+                        }
+                    ]
+                },
+                map: {} //
+            }
+        },
+        methods: {
+            onChange(nodes) {
+                console.info(JSON.stringify(nodes));
+            },
+            onTake() {
+                //提取所选节点,供授权组件调用
+                var ids = [];
+                for (var key in this.map) {
+                    if (true == this.map[key]) {
+                        ids.push({ res_id: key, type: 'auth' });
+                    }
+                }
+                return ids;
+            },
+            onRefersh() {
+                // var instance = this;
+                // instance_axios({
+                //     url: 'www/api/auth.json?t=' + new Date().getTime(),
+                //     method: 'get'
+                // }).then(res => {
+                //     instance.alls = res.data;
+                //     if (undefined != instance.alls) {
+                //         for (var key in instance.alls) {
+                //             instance.value1 = key;
+                //             break;
+                //         }
+                //     }
+                // })
+            },
+        },
+        watch: {
+            'value': function (val_new) {
+                console.log('-----------------');
+                console.log(JSON.stringify(val_new));
+                this.map = {};
+                if (undefined != val_new) {
+                    for (var i in val_new) {
+                        var node = val_new[i];
+                        this.map[node.resource] = true;
+                    }
+                }
+                this.map = Object.assign({}, this.map);
+                console.log(JSON.stringify(this.map));
+                this.onRefersh();
+            }
+        },
+        created() {
+        },
+        init: function () {
+        }
+    })
+
+</script>

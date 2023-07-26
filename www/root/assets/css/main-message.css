@@ -1,0 +1,42 @@
+.ivu-message-notice-content {
+  padding: 16px 20px !important;
+}
+
+.ivu-message {
+  top: 300px !important;
+  font-size: 18px !important;
+}
+
+.ivu-message .ivu-icon {
+  margin-top: 6px !important;
+  margin-left: 0px !important;
+  font-size: 18px !important;
+  float: left !important;
+}
+
+/* 面包屑 */
+.bread_content {
+  position: absolute;
+  left: 0px;
+  top: 15px;
+  height: 100%;
+}
+
+.bread_search {
+  padding-top: 4px;
+  float: right;
+}
+
+.bread_wrap {
+  position: relative;
+  margin: 0 auto;
+  width: 1200px;
+  height: 100%;
+}
+
+.bread_box {
+  box-sizing: border-box;
+  width: 100%;
+  height: 50px;
+  background-color: #cfddff;
+}

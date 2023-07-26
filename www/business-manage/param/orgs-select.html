@@ -1,0 +1,115 @@
+<textarea>
+    <span>
+        <Input v-model="value" @on-focus="onFocus">
+            <span slot="append">
+                <Button @click="onClear">清除</Button>
+            </span>
+        </Input>
+        <Modal title="审批类型" :closable="true" v-model="state_show" width="1000">
+            <Tree :data="nodes" @on-check-change="onSelect" show-checkbox></Tree>
+        </Modal>
+    </span>
+    <!-- 添加角色 -->
+    
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['source'],
+        data() {
+            return {
+                nodes: [],
+                alls: [],
+                value: '',
+                state_show: false
+            }
+        },
+        methods: {
+            onClear(){
+                this.value = ''
+                this.$emit("data-change", {
+                    values: [],
+                    title: ''
+                });
+            },
+            onFocus() {
+                console.log('===============', this.state_show)
+                this.state_show = true;
+            },
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: '../api/sys/org/all.do',
+                    data: {
+                        info: this.info,
+                        rid: this.rid
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        var alls = data.datas
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            if (0 === node.pid || null === node.pid) {
+                                needs.push({
+                                    'key': node.id + '',
+                                    'title': node.name,
+                                    expand: true,
+                                    'children': this.findChilds(node.id, alls)
+                                });
+                            }
+                        }
+                        this.nodes = needs;
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        node.key = node.id + '';
+                        node.title = node.name + '';
+                        node.expand = true;
+                        node.children = this.findChilds(node.id, alls);
+                        needs.push(node);
+                        // needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(nodearray, node) {
+                var ids = []
+                var buffer = ''
+                for (var item of nodearray) {
+                    ids.push(item.id)
+                    buffer += item.name + ','
+                }
+                this.value = buffer
+                this.$emit("data-change", {
+                    values: ids,
+                    title: buffer
+                });
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        init: function () {},
+        watch: {
+            source: {
+                handler(new_val, oldName) {
+                    this.value = new_val
+                },
+                immediate: true
+            },
+        }
+    })
+</script>

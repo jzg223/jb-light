@@ -1,0 +1,117 @@
+<textarea>
+  <div class="row">
+    <div class="col-sm-12 col-md-4 m-b-md">
+      <div class="card">
+        <div class="card-body">
+
+          <div class="email-list">
+            <ul class="list-unstyled">
+              <li v-for="(item,x) of datas" :key="x"><a href="javascript:void(0)" @click="onSelect(x)" :class="{'active':x==current}">
+                  <div class="email-list-item">
+                    <div class="email-author"><img src="../../assets/images/avatars/profile-image.png" alt=""><span
+                        class="author-name">{{item.fromUname}}</span><span class="email-date"><Time :time="item.createdTime*1000" ></Time></span></div>
+                    <div class="email-info"><span class="email-subject">{{item.title}}
+                      </span><span class="email-text">{{item.content}} </span>
+                    </div>
+                  </div>
+                </a></li>
+            </ul>
+          </div>
+
+          <components_design_datatable name="message-my" v-if="params.uid" :params="params" :search="search" @datas-change="onChange">
+          </components_design_datatable>
+
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-12 col-md-8">
+      <div class="card">
+        <div class="card-body">
+          <div class="open-email-content">
+            <div class="mail-header">
+              <div class="mail-title">
+                <h4>{{message.title}}</h4>
+              </div>
+              <div class="mail-actions"><button type="button" class="btn btn-secondary" @click="$refs.info.onReply(message.fromUname)">回复</button></div>
+              <div class="mail-info">
+                <div class="mail-author"><img src="../../assets/images/avatars/profile-image.png" alt="">
+                  <div class="mail-author-info"><span class="mail-author-name">{{message.fromUser}}</span><span
+                      class="mail-author-address"></span></div>
+                </div>
+                <div class="mail-other-info"><span><Time :time="message.createdTime*1000"></span></div>
+              </div>
+            </div>
+            <div class="mail-text">
+              <p>{{message.content}}</p>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+    <sys_message_info ref="info"></sys_message_info>
+  </div>
+</textarea>
+<script>
+
+  Rap.define(['/components/design/datatable','/sys/message/info'], {
+    props: {
+    },
+    data: function () {
+      return {
+        params: {}, search: {},
+        current: 0,
+        message:{},
+        datas:[]
+      }
+    },
+    created: function () {
+      this.params.uid = this.$store.state.user.uid;
+      this.params = Object.assign({}, this.params)
+    },
+    methods: {
+      onChange(datas){
+        this.datas = datas;
+        this.datas = Object.assign([],this.datas);
+        this.onSelect(0)
+      },
+      onSelect(x){
+        this.current = x;
+        this.message = this.datas[x];
+        this.message = Object.assign({},this.message);
+      },
+      async doSubmit(name) {
+        var json = await this.$refs.form.take();
+        if (false === json) {
+          return;
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/personal/setpass.do',
+          data: {
+            oldpass: md5(json.password),
+            newpass: md5(json.newpass)
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+
+      },
+      onInit() {
+
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>

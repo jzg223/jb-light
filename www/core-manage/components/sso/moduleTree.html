@@ -1,0 +1,76 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Tree :data="nodes" @on-select-change="onSelect"></Tree>
+</textarea>
+<script>
+    Rap.define([], {
+        props:['app'],
+        data() {
+            return {
+                nodes: [],
+                alls: []
+            }
+        },
+        methods: {
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/module/all.do',
+                    data: {
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var alls = root.datas;
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            if (0 == node.pid || null == node.pid) {
+                                needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                            }
+                        }
+                        this.nodes = needs;
+
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.um_parent) {
+                        needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(nodearray, node) {
+                console.info(JSON.stringify(nodearray));
+                if (nodearray.length > 0) {
+                    this.$emit("module-change", nodearray[0]);
+                } else {
+                    this.$emit("module-change", {});
+                }
+
+            }
+        },
+        created() {
+        },
+        init: function () {
+        },
+        watch:{
+            app: {
+                handler(new_val, oldName) {
+                    if(undefined != this.app && undefined != this.app.id){
+                        this.onRefersh();
+                    }
+                },
+                immediate: true
+            }
+        }
+    })
+
+</script>

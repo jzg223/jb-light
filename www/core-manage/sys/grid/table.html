@@ -1,0 +1,506 @@
+<textarea>
+  <div>
+
+    <ButtonGroup style="margin:5px;">
+      <Button icon="ios-color-wand-outline" @click="merge">合并</Button>
+      <Button icon="ios-color-wand-outline" @click="unmerge($('.selectTD'))">取消合并</Button>
+      <Button icon="ios-sunny-outline" @click="addRow($('.selectTD')[0].parentNode.rowIndex-1,1)">之前插入行</Button>
+      <Button icon="ios-crop">之后插入行</Button>
+      <Button icon="ios-crop">删除行</Button>
+      <Button icon="ios-color-filter-outline">之前插入列</Button>
+      <Button icon="ios-color-filter-outline">之后插入列</Button>
+      <Button icon="ios-crop">删除列</Button>
+    </ButtonGroup>
+
+    {{totalRow}} - {{totalCol}}
+    <table border="0" cellpadding="0" class="designTable">
+      <tbody>
+      <tr style="height:32px" class="cellHeader">
+        <th style="width:32px;" class="cellHeader">0</th>
+        <th v-for="index_col in totalCol" v-bind:style="{ width: columnWidths[index_col-1]+'px',height:'0px' }" class="cellHeader">
+          <div class="relative"><span class="colHeader">{{find26(index_col)}}</span>
+            <!-- <div class="manualColumnResizer" onmousedown="MouseDownToResize(event,this);" onmousemove="MouseMoveToResize(event)"
+              onmouseup="MouseUpToResize()"></div> -->
+              <div class="manualColumnResizer" ></div>
+          </div>
+        </th>
+      </tr>
+      <template v-for="index_row in totalRow">
+        <tr>
+          <th v-bind:style="{ height: rowHeights[index_row-1]+'px' }" class="rowHeader ">
+            <div class="rowrelative"><span class="colHeader">{{index_row}}</span>
+              <div class="manualRowResizer" onmousedown="MouseDownToResizeY(event,this);" onmousemove="MouseMoveToResizeY(event)"
+                onmouseup="MouseUpToResize();javascript:void(0)"></div>
+            </div>
+          </th>
+          <template v-for="index_col in totalCol">
+            <td class="cell">
+
+            </td>
+          </template>
+        </tr>
+      </template>
+      <!-- <tr v-for="index_row in row_total">
+            <th v-bind:style="{ height: row_heights[index_row-1]+'px' }" class="rowHeader ">{{index_row}}</th>
+            <template v-for="index_col in col_total">
+                <element-input @onSelect="onSelect" :cell="cells[(index_row)+'-'+(index_col)]"></element-input>
+            </template>
+        </tr> -->
+      </tbody>
+    </table>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    mixins: [mixin_grid],
+    props: ['fid', 'formInfo', 'ope'],
+    data: function () {
+      return {
+        cells: {},
+      }
+    },
+    created: function () {
+
+      this.totalCol = 5;
+      this.totalRow = 5;
+      for (var rowIndex = 0; rowIndex < this.totalRow; rowIndex++) {
+        this.rowHeights.push(30);
+        for (var cellIndex = 0; cellIndex < this.totalCol; cellIndex++) {
+          if (0 == rowIndex) {
+            this.columnWidths.push(150);
+            this.cells[rowIndex + '-' + cellIndex] = {};
+          }
+        }
+      }
+    },
+    mounted() {
+      Rap.loadScript('assets/libs/select-jquery1.0.js').then(() => {
+        console.log('---');
+        $(".designTable").tableselect({});
+      })
+
+    },
+    methods: {
+      insertRowBefore(){
+        this.addRow()
+      },
+      find26(value) {
+        value = value - 1;
+        var str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        var p = parseInt(value / 26);
+        var r = value % 26;
+
+        if (p == 0) {
+          return str.charAt(r);
+        } else {
+          return this.find26(p) + "" + str.charAt(r);
+        }
+      },
+      onInit() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>
+<style>
+  .designDiv td {
+    background: #fff;
+  }
+
+  .designTable {
+    FONT-SIZE: 9pt;
+    color: #000;
+    margin-bottom: 10px;
+    border-collapse: collapse;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 0;
+    height: 0;
+    /* -moz-user-select: none; */
+  }
+
+  .designTable td {
+    border: 1px solid #C0C0C0;
+    color: #000;
+    overflow: hidden;
+    /*padding-left: 5px;*/
+    /*padding-right: 5px;*/
+    text-overflow: ellipsis;
+    /*word-break: break-all;
+	word-wrap: break-word;*/
+    white-space: nowrap;
+    empty-cells: show;
+  }
+
+  .cellHeader {
+    text-align: center;
+    margin: 0px 0 0px 0;
+    background-color: #D4E1F1;
+    background-image: url("icons/white-to.gif");
+    /*border-top:none;*/
+    border-top: 1px solid #84A0C4;
+    border-left: 1px solid #84A0C4;
+    border-right: 1px solid #84A0C4;
+    border-bottom: 1px solid #84A0C4;
+    color: #15428B;
+  }
+
+  .lockHeader {
+    text-align: center;
+    margin: 0px 0 0px 0;
+    background-color: #D4E1F1;
+    background-image: url("icons/white-to.gif");
+    border: 1px solid #84A0C4;
+    color: #15428B;
+  }
+
+  .selectCellHeader {
+    background: url("icons/white-tp.gif") repeat-x scroll 0 0 #FFC57E !important;
+  }
+
+  .rowHeader {
+    text-align: center;
+    background: #e1e8f0;
+    background-color: #D4E1F1;
+    border: 1px solid #84A0C4;
+    color: #15428B;
+    /*border: 1px solid #d0d7e5;*/
+  }
+
+  .selectRowHeader {
+    background: #FFC57E !important;
+  }
+
+  .rowFudong,
+  .cellFudong {
+    background: #00ff00 !important;
+  }
+
+  .tableHead th {
+    background: #0000FF !important;
+  }
+
+  select {
+    heihgt: 10px;
+    line-height: 10px;
+  }
+
+  .mouseoutclass {
+    border-right: gray 1px solid;
+    border-top: white 1px solid;
+    border-left: white 1px solid;
+    border-tottom: gray 1px solid;
+  }
+
+  .modTD {
+    background: #eaecf5 !important;
+    border-left-width: 0;
+    border-top-width: 0;
+    border-right-color: buttonface !important;
+    border-bottom-color: buttonface !important;
+  }
+
+  .selectTD {
+    background: #eaecf5;
+  }
+
+  .title .rowHeader {
+    background: #3399FF !important;
+  }
+
+  .group .groupHead .rowHeader {
+    background: #CC99FF !important;
+  }
+
+  .group .groupDetail .rowHeader {
+    background: #FFFF99 !important;
+  }
+
+  .group .groupTail .rowHeader {
+    background: #CC99FF !important;
+  }
+
+
+  .trHide td,
+  .trHide th {
+    border-top-width: 0px;
+    line-height: 0;
+  }
+
+  /*
+.lastTR td,.lastTR th {
+	border-bottom: 1px solid #000;
+}*/
+
+  tbody:last-child {
+    border-bottom: 1px solid #000;
+  }
+
+  .lastTD {
+    /*border-right: 1px solid #000;*/
+  }
+
+  .manualColumnResizer {
+    background-color: transparent;
+    cursor: col-resize;
+    height: 25px;
+    position: absolute;
+    right: -1px;
+    top: 0;
+    width: 5px;
+    z-index: 999;
+  }
+
+  .manualRowResizer {
+    background-color: transparent;
+    cursor: row-resize;
+    width: 25px;
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    height: 5px;
+    z-index: 999;
+  }
+
+  th .relative {
+    padding: 2px 4px;
+    position: relative;
+  }
+
+  th .rowrelative {
+    padding: 0px;
+    position: relative;
+    height: 100%;
+  }
+
+  td .relative {
+    padding: 2px 4px;
+    position: relative;
+  }
+
+  td .rowrelative {
+    padding: 0px;
+    position: relative;
+    height: 100%;
+  }
+
+  select {
+    vertical-align: middle;
+    background: none repeat scroll 0 0 #F9F9F9;
+    border-color: #666666 #CCCCCC #CCCCCC #666666;
+    border-style: solid;
+    border-width: 1px;
+    color: #333;
+    padding: 2px;
+  }
+
+  .icon-save {
+    background: url('icons/save-16x16.png') no-repeat center center;
+  }
+
+  .icon-bold {
+    background: url('icons/bold-16x16.png') no-repeat center center;
+  }
+
+  .icon-italic {
+    background: url('icons/italic-16x16.png') no-repeat center center;
+  }
+
+  .icon-underline {
+    background: url('icons/underline-16x16.png') no-repeat center center;
+  }
+
+  .icon-merge {
+    background: url('icons/merge.gif') no-repeat center center;
+  }
+
+  .icon-unmerge {
+    background: url('icons/unMerge.gif') no-repeat center center;
+  }
+
+  .icon-addRowBefore {
+    background: url('icons/insertRow1.gif') no-repeat center center;
+  }
+
+  .icon-addRowAfter {
+    background: url('icons/insertRow2.gif') no-repeat center center;
+  }
+
+  .icon-deleteRow {
+    background: url('icons/delrow.gif') no-repeat center center;
+  }
+
+  .icon-addColBefore {
+    background: url('icons/insertCol1.gif') no-repeat center center;
+  }
+
+  .icon-addColAfter {
+    background: url('icons/insertCol2.gif') no-repeat center center;
+  }
+
+  .icon-deleteCol {
+    background: url('icons/delCol.gif') no-repeat center center;
+  }
+
+  .icon-left {
+    background: url('icons/left.gif') no-repeat center center;
+  }
+
+  .icon-center {
+    background: url('icons/center.gif') no-repeat center center;
+  }
+
+  .icon-right {
+    background: url('icons/right.gif') no-repeat center center;
+  }
+
+  .icon-top {
+    background: url('icons/top.gif') no-repeat center center;
+  }
+
+  .icon-middle {
+    background: url('icons/middle.gif') no-repeat center center;
+  }
+
+  .icon-bottom {
+    background: url('icons/bottom.gif') no-repeat center center;
+  }
+
+  .icon-wrap {
+    background: url('icons/export.png') no-repeat center center;
+  }
+
+  .icon-solid {
+    background: url('icons/border/solid.gif') no-repeat center center;
+  }
+
+  .icon-dashed {
+    background: url('icons/border/dashed.gif') no-repeat center center;
+  }
+
+  .icon-around {
+    background: url('icons/border/solid_around.gif') no-repeat center center;
+  }
+
+  .icon-solid_bottom {
+    background: url('icons/border/solid_bottom.gif') no-repeat center center;
+  }
+
+  .icon-solid_left {
+    background: url('icons/border/solid_left.gif') no-repeat center center;
+  }
+
+  .icon-solid_right {
+    background: url('icons/border/solid_right.gif') no-repeat center center;
+  }
+
+  .icon-solid_top {
+    background: url('icons/border/solid_top.gif') no-repeat center center;
+  }
+
+  .icon-solid {
+    background: url('icons/border/solid.gif') no-repeat center center;
+  }
+
+  .icon-lock {
+    background: url('icons/lock.png') no-repeat center center;
+  }
+
+  .icon-unlock {
+    background: url('icons/unlock.png') no-repeat center center;
+  }
+
+  .jSMenu * {
+    border-color: inherit !important;
+    border-width: 1px;
+    text-decoration: none !important;
+    width: auto;
+  }
+
+  .jSMenu ul,
+  .jSMenu div {
+    cursor: pointer;
+    list-style: none outside none;
+  }
+
+  .colorPickers * {
+    background-color: transparent !important;
+    display: inline-block;
+    height: 16px !important;
+    width: 16px !important;
+  }
+
+  .wtBorder {
+    font-size: 0;
+    position: absolute;
+  }
+
+  .corner {
+    cursor: crosshair;
+    font-size: 0;
+  }
+
+  .wrapTD {
+    overflow: hidden;
+    word-break: break-all !important;
+    word-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
+  .cell_solid {
+    border-style: solid !important;
+  }
+
+  .cell_dashed {
+    border-style: dashed !important;
+  }
+
+  .cell_left {
+    border-left-style: solid !important;
+    border-right-style: none !important;
+    border-top-style: none !important;
+    border-bottom-style: none !important;
+  }
+
+  .cell_right {
+    border-left-style: none !important;
+    border-right-style: solid !important;
+    border-top-style: none !important;
+    border-bottom-style: none !important;
+  }
+
+  .cell_top {
+    border-left-style: none !important;
+    border-right-style: none !important;
+    border-top-style: solid !important;
+    border-bottom-style: none !important;
+  }
+
+  .cell_bottom {
+    border-left-style: none !important;
+    border-right-style: none !important;
+    border-top-style: none !important;
+    border-bottom-style: solid !important;
+  }
+
+  .cell_around {
+    border-style: none !important;
+  }
+
+  .moreButton {
+    background: url('icons/moreButton.gif') no-repeat center center;
+  }
+
+  .err {
+    border: 1px solid red !important;
+  }
+
+  .err span {
+    width: 99%;
+    height: 99%;
+    background: red;
+  }
+</style>

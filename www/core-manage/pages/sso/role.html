@@ -1,0 +1,152 @@
+<textarea>
+  <!-- <div>
+    <skin_header title="应用角色管理" about="统一认证"></skin_header>
+  </div> -->
+  <skin_card title="应用角色管理">
+    <template slot="opes">
+      <components_app_select @data-change="onAppChange"></components_app_select><Divider type="vertical" />
+      <a href="javascript:void(0)" @click="onAdd">添加</a>
+      <Divider type="vertical" />
+      <Poptip confirm title="确定要删除所选角色?" @on-ok="onBatRemove">
+        <a href="javascript:void(0)" >批量删除</a>
+      </Poptip>
+    </template>
+    <template slot="body">
+      <view_application_components_roleAssign ref="assign" :app="app_current"></view_application_components_roleAssign>
+      <Tabs value="name1">
+        <TabPane label="全局角色" name="name1">
+          <components_table :columns="columns" :config="config1">
+            <template slot-scope="{ row, index }" slot="action">
+              <Button type="primary" size="small" style="margin-right: 5px" @click="onEdit(row)">修改</Button>
+              <Button type="error" size="small" @click="onAssign(row)">授权</Button>
+            </template>
+          </components_table>
+        </TabPane>
+        <TabPane label="应用角色" name="name2">
+          <components_table ref="table" v-if="params.app" :params="params" :columns="columns" :config="config">
+            <template slot-scope="{ row, index }" slot="action">
+              <Button type="primary" size="small" style="margin-right: 5px" @click.stop="onEdit(row)">修改</Button>
+              <Button type="error" size="small" @click.stop="onAssign(row)">授权</Button>
+            </template>
+          </components_table>
+        </TabPane>
+      </Tabs>
+      <components_sso_roleInfo @data-change="onRefersh" :app="app_current" ref="add"></components_sso_roleInfo>
+      <components_sso_roleAssign @data-change="onRefersh" :app="app_current" ref="assign"></components_sso_roleAssign>
+    </template>
+  </skin_card>
+</textarea>
+<script>
+  Rap.define(['/components/app/tabs', '/components/sso/roleInfo','/components/sso/roleAssign','/components/app/select'], {
+    props: {
+    },
+    data: function () {
+      return {
+        params:{},
+        config: {
+          url: 'api/sso/role/list.do',
+        },
+        config1: {
+          url: 'api/sys/role/list.do',
+        },
+        columns: [
+          {
+            type: 'selection',
+            width: 60,
+            align: 'center'
+          },
+          {
+            'title': '编号',
+            'key': 'id',
+            'sortable': true
+          },
+          {
+            'title': '角色',
+            'key': 'name',
+            'sortable': true
+          }, {
+            'title': '名称',
+            'key': 'title',
+            'sortable': true
+          }, {
+            'title': '排序',
+            'key': 'sorts',
+            'sortable': true
+          }, {
+            'title': '类型',
+            'key': 'role_type',
+            'sortable': true
+          }, {
+            'title': '备注',
+            'key': 'remarks',
+            'sortable': true
+          },
+          {
+            title: '操作',
+            slot: 'action',
+            width: 200,
+            align: 'center'
+          }
+        ],
+        app_current: {},
+      }
+    },
+    created: function () {
+    },
+    methods: {
+      onAdd() {
+        this.$refs.add.onAdd();
+      },
+      onEdit(item) {
+        this.$refs.add.onShow(item.id);
+      },
+      onAssign(item){
+        this.$refs.assign.onShow(item.id,item);
+      },
+      onBatRemove() {
+        if (this.selecteds.length == 0) {
+          this.$Message.warning('未选择数据');
+          return;
+        }
+        var ids = [];
+        for (var item of this.selecteds) {
+          ids.push(item.id);
+        }
+        instance_axios({
+          method: 'post',
+          url: 'api/sso/role/batRemove.do',
+          data: {
+            ids: ids,
+            app: this.app_current.id
+          }
+        }).then(res => {
+          console.info(res)
+          let data = res.data
+          if (data.code === 200) {
+            this.datas = data.datas
+            this.userPage.total = data.total
+          } else {
+            this.$Message.error(data.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onAppChange(app) {
+        this.app_current = app;
+        this.params.app = this.app_current.id;
+        this.params = Object.assign({},this.params);
+      },
+      onRefersh(){
+        if(undefined!=this.$refs.table){
+          this.$refs.table.onRefersh();
+        }
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>

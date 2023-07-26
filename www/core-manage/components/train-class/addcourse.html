@@ -1,0 +1,171 @@
+<textarea>
+  <Modal v-model="state_show" title="选择课程" @on-ok="ok" width="800">
+
+    <div class="alert alert-info" role="alert">加入班级的课程为选中的原课程复制生成，并与原课程同步更新（可能会延后几分钟生效）。如需解除同步，请对该课程进行编辑。
+    </div>
+    <form class="form-inline form-search" role="search-form">
+      <div class="form-group ">
+        <input type="text" class="form-control js-enter-search" name="key" id="enterSearch" value="" placeholder="课程名称"
+          data-url="/classroom/1/course/search">
+      </div>
+      <button type="button" class="btn btn-primary" id="search" data-url="/classroom/1/course/search">搜索</button>
+      <a class="btn btn-primary" id="all-courses" data-url="/classroom/1/course/pick?page=1">全部课程</a>
+    </form>
+
+    <div class="row mtl">
+      <div class="col-md-12">
+        <div class="courses-list">
+          <style>
+            .course-wide-list .enabled:hover{
+              background: #eee;
+              border-color: #ddd;
+          }
+          
+          .course-wide-list .enabled{
+              cursor: default;
+              background: #eee;
+          }
+          
+          </style>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th width="5%"></th>
+                <th width="30%">课程名称</th>
+                <th width="30%">教学计划名称</th>
+                <th>教师名称</th>
+                <!-- <th>价格</th> -->
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item of datas">
+                <td class="text-center" data-id="8">
+                  <input class="course-item-cbx" type="checkbox" v-model="ids" :value="item.id">
+                </td>
+                <td>
+                  <a class="pull-left mr5 link-primary" href="javascript:void(0)">
+                    <img class="course-picture" :src="fj_url+img(item)" width="100">
+                  </a>
+                  <div class="mlm">
+                    <a class="link-primary" href="/course/8">{{item.courseSetTitle}}</a>
+                  </div>
+                </td>
+                <td>
+                  {{item.title}}
+                </td>
+                <td>
+                  <div class="teacher">
+                    <a class="teacher-nickname ellipsis link-primary" target="_blank" href="/user/3">admin</a>
+                  </div>
+                </td>
+                <!-- <td>
+                  <span class="course-price js-price-8" style="display:inline">
+                    免费
+                  </span>
+                </td> -->
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+
+
+    <div slot="footer">
+      <Button type="primary" @click="ok">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+  Rap.define([], {
+    mixins: [mixin_course],
+    data: function () {
+      return {
+        cid: 0,// 班级id
+        state_show: false,
+        datas: [],
+        pager: {
+          total: 0,
+          size: 10,
+          current: 1
+        },
+        ids: []
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      pageChange(current) {
+        this.pager.current = current;
+        this.onRefersh();
+      },
+      pageSizeChange(pageSize) {
+        this.pager.size = pageSize;
+        this.onRefersh();
+      },
+      onShow(cid) {
+        this.cid = cid;
+        this.state_show = true;
+        this.onRefersh();
+      },
+      onRefersh() {
+        edu_axios({
+          method: 'post',
+          url: 'api/manage/course/list-no-classroom.do',
+          data: {
+            id: this.cid
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.datas = root.datas;
+            this.pager.total = root.total;
+          } else {
+            this.$Message.error(root.message);
+          }
+        })
+      },
+      ok() {
+        if (0 == this.ids.length) {
+          this.$Message.error("未选择课程");
+          return;
+        }
+
+        var array = [];
+        for (var item of this.datas) {
+          if(-1 != this.ids.indexOf(item.id))
+          array.push({ sid: item.courseSetId, cid: item.id });
+        }
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/add-course.do',
+          data: {
+            uid: this.$store.state.uid,
+            ids: array,
+            cid: this.cid,
+            useTrans:1
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功添加任务');
+            this.$emit('data-change', {});
+            this.state_show = false;
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message);
+          }
+        }).catch(err=>{
+          this.$Message.error('添加失败,请联系管理员');
+        })
+      }
+
+    },
+    watch: {
+    }
+  })
+</script>

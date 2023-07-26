@@ -1,0 +1,219 @@
+<!-- 引用外部样式 -->
+<textarea>
+  <skin_two39 description="账号管理">
+    <!-- <template slot="top">
+      <skin_card title="账号管理"></skin_card>
+    </template> -->
+    <template slot="left">
+      <sys_org_info ref="org" @data-change="$refs.orgTree.onRefersh()"></sys_org_info>
+      <sys_role_info ref="role" @data-change="$refs.roleTree.onRefersh()"></sys_role_info>
+      <sys_user_info-inner ref="user" @data-change="onRefersh"></sys_user_info-inner>
+
+      <skin_panel title="机构列表">
+        <template slot="opes">
+          <ButtonGroup>
+            <Button size="small" type="info" icon="ios-add" ghost class="extra" @click="$refs.org.onAdd()"></Button>
+            <Button size="small" v-if="selected_org.key" type="warning" icon="ios-build" ghost class="extra" @click="$refs.org.onShow(selected_org.key)"></Button>
+          </ButtonGroup>
+        </template>
+        <template slot="body">
+          <sys_org_tree-inner ref="orgTree" @org-change="onOrgSelect"></sys_org_tree-inner>
+        </template>
+      </skin_panel>
+      <skin_panel title="角色列表" style="margin-top:10px;">
+        <template slot="opes">
+          <ButtonGroup>
+            <Button size="small" type="info" icon="ios-add" ghost class="extra" @click="$refs.role.onAdd()"></Button>
+            <Button size="small" v-if="selected_role.key" type="warning" ghost icon="ios-build" class="extra" @click="$refs.role.onShow(selected_role.key)"></Button>
+          </ButtonGroup>
+        </template>
+        <template slot="body">
+          <sys_role_tree ref="roleTree" @select-change="onRoleSelect"></sys_role_tree>
+        </template>
+      </skin_panel>
+    </template>
+    <template slot="right">
+      <skin_panel1 title="账号查询">
+        <template slot="opes">
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">添加</a>
+          <Divider type="vertical" />
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">冻结</a>
+          <Divider type="vertical" />
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">取消添加</a>
+          <Divider type="vertical" />
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">重置密码</a>
+        </template>
+        <template slot="body">
+            <Form :model="formSearch" inline>
+                <FormItem prop="userID">
+                  <Input type="text" v-model="formSearch.userID" placeholder="请输入用户账号" />
+                </FormItem>
+                <FormItem prop="userName">
+                  <Input type="text" v-model="formSearch.userName" placeholder="请输入用户姓名" />
+                </FormItem>
+                <FormItem>
+                  <Button type="primary" @click="userSearch">搜索</Button>
+                  <Button type="default" @click="resetSearch" style="margin-left: 20px">重置</Button>
+                </FormItem>
+              </Form>
+  
+              <Table border highlight-row ref="userTable" :columns="columns" :data="datas">
+                <template slot-scope="{ row, index }" slot="action">
+                  <Button type="primary" size="small" style="margin-right: 5px" @click="console.log($refs.user);$refs.user.onShow(row.id)">修改</Button>
+                  <!-- <Button type="error" size="small" @click="remove(index)">授权</Button> -->
+                </template>
+              </Table>
+              <Row>
+                <Col span="12" offset="12">
+                <Page :total="userPage.total" :current="userPage.current" :page-size="userPage.size" show-total
+                  show-elevator show-sizer style="margin-top: 20px;" @on-change="pageChange" @on-page-size-change="pageSizeChange" />
+                </Col>
+              </Row>
+        </template>
+      </skin_panel1>
+      <sys_org_info ref="org" @data-change="$refs.orgTree.onRefersh()"></sys_org_info>
+      <sys_role_info ref="role" @data-change="$refs.roleTree.onRefersh()">
+      </sys_role_info>
+    </template>
+  </skin_two39>
+</textarea>
+<script>
+  //这里定义组件
+  Rap.define('', ['/sys/org/tree-inner', '/sys/role/info',
+    '/sys/role/tree', '/sys/org/info',
+    '/sys/user/info-inner'], {
+      data() {
+        return {
+          selected_org: {}, // 所选机构
+          selected_role: {}, // 已选角色
+          formSearch: {
+            userID: null,
+            userName: null
+          },
+          titleClass: 'title',
+          datas: [],
+          columns: [
+            {
+              type: 'selection',
+              width: 60,
+              align: 'center'
+            },
+            {
+              'title': '登录账号',
+              'key': 'username',
+              'sortable': true
+            }, {
+              'title': '姓名',
+              'key': 'title',
+              'sortable': true
+            }, {
+              'title': '邮箱',
+              'key': 'email',
+              'sortable': true
+            }, {
+              'title': '电话',
+              'key': 'phone',
+              'sortable': true
+            }, {
+              'title': '机构名称',
+              'key': 'orgName',
+              'sortable': true
+            }, {
+              title: '操作',
+              slot: 'action',
+              width: 200,
+              align: 'center'
+            }
+          ],
+          userPage: {
+            total: 0,
+            size: 10,
+            current: 1
+          },
+          params:{}
+        }
+      },
+      methods: {
+        onOrgSelect(event) {
+          this.selected_org = Object.assign({}, event);
+          this.onRefersh();
+        },
+        onRoleSelect(event) {
+          this.selected_role = Object.assign({}, event);
+          this.onRefersh();
+        },
+        resetPage() {
+          this.userPage = {
+            total: 0,
+            size: 10,
+            current: 1
+          }
+          this.onRefersh();
+        },
+        onRefersh(params) {
+          console.log(JSON.stringify(this.selected_org));
+          console.log(JSON.stringify(this.selected_role));
+          let userPage = this.userPage
+          instance_axios({
+            method: 'post',
+            url: 'api/sys/user/list.do',
+            data: {
+              pageNum: this.userPage.current,
+              pageSize: this.userPage.size,
+              id_org: this.selected_org.key,
+              id_role: this.selected_role.key
+            }
+          }).then(res => {
+            let root = res.data
+            if (root.code === 200) {
+              this.datas = root.datas
+              this.userPage.total = root.total
+            } else {
+              this.$Message.error(data.message)
+            }
+          }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        },
+        pageChange(current) {
+          this.userPage.current = current
+          this.onRefersh()
+        },
+        pageSizeChange(pageSize) {
+          this.userPage.size = pageSize
+          this.onRefersh()
+        },
+        resetSearch() {
+          let formSearch = this.formSearch
+          let flag = false
+
+          if (formSearch.userID) {
+            flag = true
+          }
+          if (formSearch.userName) {
+            flag = true
+          }
+          if (flag) {
+            this.formSearch = {
+              userID: null,
+              userName: null
+            }
+            this.resetPage()
+            this.getFunctionListDataHandle()
+          }
+        },
+        userSearch() {
+          let formSearch = this.formSearch
+          this.resetPage()
+          this.onRefersh(formSearch)
+        }
+      },
+      created() {
+        // this.onRefersh();
+      },
+      init: function () {
+        // this.$root.fillTab('账号管理', this.router.hash);
+      }
+    })
+</script>

@@ -1,0 +1,49 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Drawer title="模板解析" :closable="true" v-model="state_show" width="500">
+        <Input v-model="content_parse" placeholder="" type="textarea" :rows="4"/>
+        <Button @click="onSubmit" >解析</Button>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define([], {
+        data() {
+            return {
+                state_show: false,
+                content_parse: ''
+            }
+        },
+        methods: {
+            onShow(rid) {
+                this.state_show = true;
+            },
+            onSubmit() {
+                var lines = this.content_parse.split('\n');
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/table/parse.do',
+                    data: {
+                        lines: lines,
+                    }
+                }).then(res => {
+                    var root = res.data;
+                    console.log(root);
+                    if (200 === root.code) {
+                        this.$emit("data-change", root.tokens);
+                    } else {
+                    }
+                    // this.$route.meta.title = this.mainForm.vform.vf_title;
+                    // this.currentForm = this.config.childForms["00391"];
+                }).catch(err => {
+                    this.$Message.error('保存配置失败: ' + err);
+                });
+            },
+        },
+        created() {
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

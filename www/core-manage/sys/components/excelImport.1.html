@@ -1,0 +1,130 @@
+<textarea>
+    <div>
+            <Upload :multiple="1==0"  :before-upload="onBeforeUpload" type="drag" :name="'upload'" :on-success="onImportSuccess">
+                <div style="padding: 20px 0">
+                    <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"></Icon>
+                    <p>点击或拖动文件上传</p>
+                </div>
+            </Upload>
+
+            <Tabs v-if="sheets.length>0" active-key="sheets[0]">
+                <Tab-pane v-for="(name ,i ) of sheets" :label="name" :key="i">
+                    <div style="overflow: scroll;height:300px;" v-html="htmls_sheet[name]"></div></Tab-pane>
+            </Tabs>
+    </div>
+    
+</textarea>
+<script>
+    Rap.define([], {
+        props:[
+            'rowCheck'
+        ],
+        data() {
+            return {
+                sheets: [],
+                htmls_sheet: {}
+            }
+        },
+        methods: {
+            onImportSuccess(res) {
+                if (200 == res.code) {
+                    this.$Modal.success({
+                        title: "导入数据",
+                        content: '成功'
+                    });
+                } else {
+                    this.$Modal.error({
+                        title: "导入数据",
+                        content: res.message
+                    });
+                }
+            },
+            csv2table(csv, array) {
+                var html = '<table border=1 class="table">';
+                var rows = csv.split('\n');
+                rows.pop(); // 最后一行没用的
+                rows.forEach(function (row, idx) {
+                    var columns = row.split(',');
+                    columns.unshift(idx + 1); // 添加行索引
+                    if (idx == 0) { // 添加列索引
+                        html += '<tr>';
+                        for (var i = 0; i < columns.length; i++) {
+                            html += '<th width="80px" class="th">' + (i == 0 ? '' : String.fromCharCode(65 + i - 1)) + '</th>';
+                        }
+                        html += '</tr>';
+                    }
+                    html += '<tr>';
+                    var index_column = 0;
+
+                    var arr = [];
+                    columns.forEach(function (column) {
+                        if (0 == index_column) {
+                            html += '<th class="th">' + column + '</th>';
+                        } else {
+                            // json[(1 + idx) + '-' + index_column] = column;
+                            arr.push(column.trim());
+                            html += '<td class="td">' + column + '</td>';
+                        }
+                        index_column++;
+                    });
+                    array.push(arr);
+                    html += '</tr>';
+                });
+                html += '</table>';
+                return html;
+            },
+            readXls(file) {
+
+                this.$Spin.show({
+                    render: (h) => {
+                        return h('div', [
+                            h('Icon', {
+                                'class': 'demo-spin-icon-load',
+                                props: {
+                                    type: 'ios-loading',
+                                    size: 18
+                                }
+                            }),
+                            h('div', '正在读取excel数据')
+                        ])
+                    }
+                });
+
+                var instance = this;
+                instance.infos = [];
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var data = e.target.result;
+                    // console.info(data);
+                    var workbook = XLSX.read(data, { type: 'binary' });
+                    // if (callback) callback(workbook);
+                    var sheetNames = workbook.SheetNames; // 工作表名称集合
+                    var datas_sheet = {};
+                    for (var x = 0; x < sheetNames.length; x++) {
+                        var worksheet = workbook.Sheets[sheetNames[x]]; // 这里我们只读取第一张sheet
+                        var csv = XLSX.utils.sheet_to_csv(worksheet);
+                        var array = [];
+                        var html = instance.csv2table(csv, array);
+                        instance.sheets.push(sheetNames[x]);
+                        instance.htmls_sheet[sheetNames[x]] = html;
+                        datas_sheet[sheetNames[x]] = array;
+                    }
+                    instance.$Spin.hide();
+                    instance.$emit('on-data-change', { 'sheets': sheetNames, 'datas': datas_sheet });
+                };
+                reader.readAsBinaryString(file);
+            },
+            onBeforeUpload(file) {
+                this.sheets = [];
+                this.datas_sheet = {};
+                this.readXls(file);
+                return false;
+            }
+        },
+        created() {
+            Rap.insertScript('assets/js/xlsx.full.min.js').then(res => { });
+            Rap.insertScript('assets/js/xlsx.js').then(res => {  });
+            Rap.insertScript('assets/js/xlsx.core.min.js').then(res => {  });
+        }
+    });
+</script>

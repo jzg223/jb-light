@@ -1,0 +1,218 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Drawer title="角色授权" :closable="true" v-model="state_show" width="700">
+        {{steps_my}}
+        <Tabs value="name1">
+            <TabPane label="节点权限" name="name1">
+                <table class="designTable">
+                    <tr>
+                        <th>节点</th>
+                        <th>标题</th>
+                        <th>权限</th>
+                    </tr>
+                    <tr v-for="(step,x) of steps">
+                        <td>{{step.name}}</td>
+                        <td>{{step.title}}</td>
+                        <td>
+                            <RadioGroup v-model="steps_my[step.name]">
+                                <Radio label="1">读</Radio>
+                                <Radio label="2">写</Radio>
+                                <Radio label="3">隐藏</Radio>
+                            </RadioGroup>
+                        </td>
+                    </tr>
+                </table>
+            </TabPane>
+            <TabPane label="操作权限" name="name2">
+                <table class="designTable">
+                    <tr>
+                        <th>操作</th>
+                        <th>标题</th>
+                        <th>权限</th>
+                    </tr>
+                    <template v-for="step of steps">
+                        <tr v-if="'3'!==steps_my[step.name]">
+                            <td colspan=3>{{step.title}}</td>
+                        </tr>
+                        <tr v-for="(ope,x) of step.opes"  v-if="'3'!==steps_my[step.name]">
+                            <td>{{ope.name}}</td>
+                            <td>{{ope.title}}</td>
+                            <td>
+                                <RadioGroup v-model="opes_my[ope.key]">
+                                    <Radio label="1">读</Radio>
+                                    <Radio label="2">写</Radio>
+                                    <Radio label="3">隐藏</Radio>
+                                </RadioGroup>
+                            </td>
+                        </tr>
+                    </template>
+                </table>
+            </TabPane>
+            <TabPane label="动作权限" name="name3">
+                <table class="designTable">
+                    <tr>
+                        <th>动作</th>
+                        <th>标题</th>
+                        <th>权限</th>
+                    </tr>
+                    <template v-for="step of steps">
+                        <tr v-if="'3'!==steps_my[step.name]">
+                            <td colspan=3>{{step.title}}</td>
+                        </tr>
+                        <tr  v-if="'3'!==steps_my[step.name]" v-for="(ope,x) of step.nexts">
+                            <td>{{ope.name}}</td>
+                            <td>{{ope.title}}</td>
+                            <td>
+                                <RadioGroup v-model="nexts_my[ope.key]">
+                                    <Radio label="1">读</Radio>
+                                    <Radio label="2">写</Radio>
+                                    <Radio label="3">隐藏</Radio>
+                                </RadioGroup>
+                            </td>
+                        </tr>
+                    </template>
+                </table>
+            </TabPane>
+        </Tabs>
+        <a href="javascript:;" @click="doSubmit">保存</a> 
+    </Drawer>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['fid'],
+        data() {
+            return {
+                state_show: false,
+                id: 0,
+                steps: [],
+                steps_my: {},
+                opes_my: {},
+                nexts_my: {}
+            }
+        },
+        methods: {
+            onShow(row) {
+                this.state_show = true;
+                this.id = row.id;
+                var content = row.steps;
+                this.steps_my = {};
+                this.opes_my = {};
+                this.nexts_my = {};
+                if(undefined != content && '' != content.trim()){
+                    var arr = JSON.parse(content);
+                    this.steps_my = arr;
+                }
+                content = row.opes;
+                if(undefined != content && '' != content.trim()){
+                    var arr = JSON.parse(content);
+                    this.opes_my = arr;
+                }
+                content = row.nexts;
+                if(undefined != content && '' != content.trim()){
+                    var arr = JSON.parse(content);
+                    this.nexts_my = arr;
+                }
+                this.steps_my = Object.assign({},this.steps_my);
+                this.opes_my = Object.assign({},this.opes_my);
+                this.nexts_my = Object.assign({},this.nexts_my);
+            },
+            onInit() {
+                this.steps = [];
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/flow/list-step.do',
+                    data: {
+                        fid: this.fid
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var steps = root.datas;
+                        for (var step of steps) {
+                            var content = step.content;
+                            if (undefined != content) {
+                                var arr = JSON.parse(content);
+                                step.opes = arr;
+                            }
+
+                            content = step.nexts;
+                            var childs_next = [];
+                            if (undefined != content) {
+                                var arr = JSON.parse(content);
+                                step.nexts = arr;
+                            }
+                        }
+                        this.steps = Object.assign([], steps);
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                })
+            },
+            doSubmit(name) {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/flow/update-role.do',
+                    data: {
+                        id: this.id,
+                        info: {
+                            'steps': JSON.stringify(this.steps_my)+' ',
+                            'opes': JSON.stringify(this.opes_my)+' ',
+                            'nexts': JSON.stringify(this.nexts_my)+' '
+                        }
+                    }
+                }).then(res => {
+                    let data = res.data;
+                    if (data.code === 200) {
+                        this.$Message.success('添加成功');
+                        this.$emit('data-change', {});
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+        },
+        watch: {
+            id: {
+                handler(new_val, oldName) {
+                    if (0 != new_val) {
+                        this.onInit();
+                    }
+                },
+                immediate: true
+            }
+        }
+    })
+
+</script>
+<style>
+    .designTable {
+        FONT-SIZE: 9pt;
+        color: #000;
+        margin-bottom: 10px;
+        border-collapse: collapse;
+        border-collapse: collapse;
+        table-layout: fixed;
+        width: 100%;
+        /* -moz-user-select: none; */
+    }
+
+    .designTable td,
+    .designTable th {
+        border: 1px solid #C0C0C0;
+        color: #000;
+        overflow: hidden;
+        /*padding-left: 5px;*/
+        /*padding-right: 5px;*/
+        text-overflow: ellipsis;
+        /*word-break: break-all;
+	word-wrap: break-word;*/
+        white-space: nowrap;
+        empty-cells: show;
+        padding: 5px;
+    }
+</style>

@@ -1,0 +1,337 @@
+<textarea>
+    <div class="date">
+        <div class="date_box">
+            <div class="date_month">
+                <i class="fa fa-angle-left" @click="pickPre(currentYear,currentMonth)"></i>
+                <i class="fa fa-angle-double-left" @click="pickPreYear(currentYear,currentMonth)"></i>
+                <span class="date_year_month">
+                    <span>{{ currentMonth }}月</span>
+                    <span>{{ currentYear }}</span>
+                </span>
+                <i class="fa fa-angle-double-right" @click="pickNextYear(currentYear,currentMonth)"></i>
+                <i class="fa fa-angle-right" @click="pickNext(currentYear,currentMonth)"></i>
+            </div>
+            <ul class="date_week">
+                <li>一</li>
+                <li>二</li>
+                <li>三</li>
+                <li>四</li>
+                <li>五</li>
+                <li style="color:red">六</li>
+                <li style="color:red">日</li>
+            </ul>
+            <ul class="date_days">
+                <li class="date_days_row" v-for="dayobject in days">
+                    <!--  :class="{clickable:dayobject.status == true}" -->
+                    <span class="date_not_current_month" v-if="dayobject.day.getMonth()+1 != (currentMonth)">
+                        <span v-if="dayobject.day.getMonth()+1 == (currentMonth-1)" @click="pickPre(currentYear,currentMonth)">
+                        {{ dayobject.day.getDate()}}
+                        </span>
+                        <span v-if="dayobject.day.getMonth()+1 == (currentMonth+1)" @click="pickNext(currentYear,currentMonth)">
+                        {{ dayobject.day.getDate()}}
+                        </span>
+                    </span>
+                    <span class="date_current_month" v-else :class="{current_day:dayobject.day.getDate() == activity}" @click="itemClick(currentYear,currentMonth,dayobject.day.getDate())">
+                        <!-- 当天 -->
+                        <span v-if="dayobject.day.getFullYear() == new Date().getFullYear() && dayobject.day.getMonth() == new Date().getMonth() && dayobject.day.getDate() == new Date().getDate()" class="date_today">
+                            {{ dayobject.day.getDate()}}
+                            <i class="fa fa-circle day_today_item"></i>
+                        </span>
+                        <!-- 除当天以外其他天 -->
+                        <span v-else>{{ dayobject.day.getDate()}}</span>
+                    </span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</textarea>
+<script>
+    Rap.define([], {
+      props: ['id', 'classInfo','ope'],
+      data() {
+        return {
+            currentDay: 1,
+            currentMonth: 1,
+            currentYear: 1970,
+            currentWeek: 1,
+            days: [],
+            today: 1,
+            activity:0,
+            // resDay: []
+        }
+      },
+      created() {
+        this.initData(null);
+        this.toDay();
+        // this.onClickable();
+      },
+      mounted() {
+      },
+      methods: {
+        // onClickable() {
+        //     // 把settimeout优化成条件判断
+        //     setTimeout(()=> {
+        //         let day= [];
+
+        //         for(let [i,arr] of this.clickable.entries()) {
+        //             day[i] = new Date(arr.recordDay);
+        //         }
+
+        //         this.resDay = day;
+        //         this.toCompare();
+        //     },1000)
+        // },
+        // toCompare() {
+        //     let status = true;
+        //     for(let arr of this.resDay) {
+        //         for(let [i,item] of this.days.entries()) {
+        //             if(item.day.toString() == arr.toString()) {
+        //                 this.days[i].status = true;
+        //             }
+        //         }
+        //     }
+        // },
+        toDay() {
+            var now = new Date();
+            this.today = now.getDate();
+        },
+        initData(cur) {
+                var leftcount=0; //存放剩余数量
+                var date;
+
+                if (cur) {
+                    date = new Date(cur);
+                } else {
+                    var now=new Date();
+                    var d = new Date(this.formatDate(now.getFullYear() , now.getMonth() , now.getDate()));
+                    d.setDate(42);
+                    date = new Date(this.formatDate(d.getFullYear(),d.getMonth() + 1,1));
+                }
+                this.currentDay = date.getDate();
+                this.currentYear = date.getFullYear();
+                this.currentMonth = date.getMonth() + 1;
+
+                this.currentWeek = date.getDay(); // 1...6,0
+                if (this.currentWeek == 0) {
+                    this.currentWeek = 7;
+                }
+                var str = this.formatDate(this.currentYear , this.currentMonth, this.currentDay);
+                this.days.length = 0;
+                // 今天是周日，放在第一行第7个位置，前面6个
+                //初始化本周
+                for (var i = this.currentWeek - 1; i >= 0; i--) {
+                    var d = new Date(str);
+                    d.setDate(d.getDate() - i);
+                    var dayobject={}; //用一个对象包装Date对象  以便为以后预定功能添加属性
+                    dayobject.day=d;
+                    this.days.push(dayobject);//将日期放入data 中的days数组 供页面渲染使用
+                }
+                //其他周
+                for (var i = 1; i <= 42 - this.currentWeek; i++) {
+                    var d = new Date(str);
+                    d.setDate(d.getDate() + i);
+                    var dayobject={};
+                    dayobject.day=d;
+                    this.days.push(dayobject);
+                }
+            },
+            pickPre(year, month) {
+                // setDate(0); 上月最后一天
+                // setDate(-1); 上月倒数第二天
+                // setDate(dx) 参数dx为 上月最后一天的前后dx天
+                var d = new Date(this.formatDate(year , month , 1));
+                d.setDate(0);
+                this.initData(this.formatDate(d.getFullYear(),d.getMonth() + 1,1));
+                // this.toCompare();
+
+            },
+            pickNext(year, month) {
+                var d = new Date(this.formatDate(year , month , 1));
+                d.setDate(42);
+                this.initData(this.formatDate(d.getFullYear(),d.getMonth() + 1,1));
+                // this.toCompare();
+
+            },
+            pickPreYear(year, month) {
+                var d = new Date(this.formatDate(year, month, 1))
+                year--;
+                var year = year;
+                this.initData(this.formatDate(year,d.getMonth() + 1,1));
+                // this.toCompare();
+
+            },
+            pickNextYear(year, month) {
+                var d = new Date(this.formatDate(year, month, 1))
+                year++;
+                var year = year;
+                this.initData(this.formatDate(year,d.getMonth() + 1,1));
+                // this.toCompare();
+
+            },
+            itemClick(year,month,day,status) {
+                this.activity = day;
+                let dates = [year, month, day,status]
+                this.$emit('on-change',dates)
+            },
+            // 返回 类似 2016-01-02 格式的字符串
+            formatDate(year,month,day){
+                var y = year;
+                var m = month;
+                if(m<10) m = "0" + m;
+                var d = day;
+                if(d<10) d = "0" + d;
+                return y+"-"+m+"-"+d
+            },
+      },
+      init(query, search) {
+      },
+      watch: {
+        id: {
+          handler(new_val, oldName) {
+  
+            if (0 != new_val) {
+              this.info = Object.assign({},this.classInfo);
+            }
+          },
+          immediate: true
+        }
+      }
+    })
+</script>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .current_day {
+        background-color: #fdab01;
+        color: #5f687a;
+        /* 去除hover */
+        pointer-events:none;
+    }
+
+    .date_today {
+        position: relative;
+    }
+
+    .day_today_item {
+        position: absolute;
+        color:red;
+        font-size: 8px;
+        top: 5px;
+        right:5px;
+    }
+
+    .date_box {
+        width: 100%;
+        border: 1px solid #ececec ;
+    }
+
+    .date_month {
+        padding: 0 10px;
+        display: flex;
+        width: 100%;
+        height: 50px;
+        background-color: #60a8f3;
+        text-align: center;
+        line-height: 50px;
+    }
+
+    .date_month > i {
+        display: inline-block;
+        width: 8%;
+        line-height: 50px;
+        cursor: pointer;
+    }
+
+    .date_year_month {
+        display: inline-block;
+        width: 68%;
+        font-weight: bold;
+    }
+
+    .date_year_month > span {
+        float: left;
+        display: block;
+        width: 50%;
+    }
+
+    .date_week {
+        display: flex;
+    }
+
+    .date_week > li {
+        margin-left: -1px;
+        margin-bottom:-1px;
+        display: inline-block;
+        flex: 1;
+        height: 35px;
+        border: 1px solid #f4f4f4;
+        border-right: none;
+        line-height: 35px;
+        text-align: center;
+    }
+
+    .date_days {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .date_days_row {
+        margin-left: -1px;
+        margin-bottom:-1px;
+        display: inline-block;
+        flex: 1;
+        min-width: 14.2%;
+        max-width: 14.2%; 
+        height: 35px;
+        border: 1px solid #f4f4f4;
+        /* background-color: #f3f4f7; */
+        border-right: none;
+        line-height: 35px;
+        text-align: center;
+        color: #5f687a;
+        /* color: #a6a6a6; */
+        cursor: pointer;
+    }
+
+    .date_days_row span {
+        display: block;
+        width:100%;
+        height: 100%;
+    }
+
+    .date_days_row :hover {
+        background-color: #d2d2d2;
+    }
+
+    .date_days_row:nth-of-type(7n) {
+        color: red;
+    }
+
+    .date_days_row:nth-of-type(7n-1) {
+        color: red;
+    }
+
+    .date_not_current_month {
+        color: #a6a6a6;
+    }
+
+    .date_not_current_month:hover {
+        color:#5f687a;
+    }
+
+    .clickable {
+        /* color: #5f687a; */
+        background-color: #fff;
+        cursor: pointer;
+    }
+
+    .clickable:hover {
+        background-color: #d2d2d2;
+    }
+</style>

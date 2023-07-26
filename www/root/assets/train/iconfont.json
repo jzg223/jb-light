@@ -1,0 +1,72 @@
+{
+  "id": "2906127",
+  "name": "train",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "2678666",
+      "name": "组织机构",
+      "font_class": "zuzhijigou1",
+      "unicode": "e66e",
+      "unicode_decimal": 58990
+    },
+    {
+      "icon_id": "9466860",
+      "name": "省级区划",
+      "font_class": "shengjiquhua",
+      "unicode": "e670",
+      "unicode_decimal": 58992
+    },
+    {
+      "icon_id": "9466864",
+      "name": "市级区划",
+      "font_class": "shijiquhua",
+      "unicode": "e671",
+      "unicode_decimal": 58993
+    },
+    {
+      "icon_id": "9466866",
+      "name": "县级区划",
+      "font_class": "xianjiquhua",
+      "unicode": "e672",
+      "unicode_decimal": 58994
+    },
+    {
+      "icon_id": "11649634",
+      "name": "组织机构",
+      "font_class": "zuzhijigou2",
+      "unicode": "e64e",
+      "unicode_decimal": 58958
+    },
+    {
+      "icon_id": "21958058",
+      "name": "地域分布",
+      "font_class": "diyufenbu",
+      "unicode": "e619",
+      "unicode_decimal": 58905
+    },
+    {
+      "icon_id": "3978354",
+      "name": "组织机构",
+      "font_class": "zuzhijigou",
+      "unicode": "e652",
+      "unicode_decimal": 58962
+    },
+    {
+      "icon_id": "13659213",
+      "name": "直播 播放 摄像机 观看 面性",
+      "font_class": "live_gray",
+      "unicode": "e600",
+      "unicode_decimal": 58880
+    },
+    {
+      "icon_id": "14997469",
+      "name": "地域",
+      "font_class": "diyu",
+      "unicode": "e680",
+      "unicode_decimal": 59008
+    }
+  ]
+}

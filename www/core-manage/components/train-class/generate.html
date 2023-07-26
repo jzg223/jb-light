@@ -1,0 +1,103 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+      <components_design_table ref="table" v-if="params.classId" name="train-class-review-list" :params="params">
+        <template slot="opes">
+          <Button type="primary" @click="onRefersh">刷新</Button>
+          <Button type="primary" @click="onRefersh">导入</Button>
+          <Button type="primary" @click="onFinish" v-if="'view'!=ope">完成设置</Button>
+        </template>
+        <template slot-scope="{ row, index }" slot="action">
+          <a v-if="'2'==auth" href="javascript:;" @click="onEdit(row)">评价</a>
+        </template>
+        <template slot-scope="{ row, index }" slot="yesorno">
+         <span :title="row.review">{{1==row.isReview?'是':'否'}}</span>
+        </template>
+      </components_design_table>
+      <components_train-class_review_info :tid="id" ref="form" @data-change="onRefersh"></components_train-class_review_info>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/train-class/review/info'], {
+    props: ['id', 'classInfo', 'ope','auth'],
+    mixins: [mixin_trainclass],
+    data: function () {
+      return {
+        params:{},
+        search:{}
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onEdit(row){
+        this.$refs.form.onShow(row);
+      },
+      onImport() {
+        this.$refs.import.onShow(this.id);
+      },
+      doSubmit(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/update.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('修改成功');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onFinish(name) {
+        var info = Object.assign({}, this.info);
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/confirm-review.do',
+          data: {
+            info: info,
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('完成设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onSelectedChange(values) {
+        this.datas_selected = values;
+      },
+      onRefersh() {
+        if(undefined!=this.$refs.table){
+          this.$refs.table.onRefersh();
+        }
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.params.classId = this.id;
+            this.params = Object.assign({},this.params);
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

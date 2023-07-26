@@ -1,0 +1,72 @@
+<template>
+    <div style="position: fixed;top: 88px;bottom:0px;width: 188px;background:#f0f9fd;">
+        <!-- <div class="lefttop"><span></span>通讯录</div> -->
+        <dl class="leftmenu">
+            <dd>
+                <template v-for="(item,x) of uimodules">
+                    <div class="title">
+                        <span><img src="/blue/images/leftico01.png"></span>{{item.name}}
+                    </div>
+                    <ul class="menuson">
+                    <template v-for="(uf,index) of uifunctions[item.id+'']">
+                        <li :class="{'active':nav_current==uf.fullpath}"><cite></cite><a :href="'#'+uf.fullpath" >{{uf.name}}</a><i></i></li>
+                        <!-- <a ><embed :src="uf.icon" /></a> -->
+                    </li>
+                    </template>
+                    </ul>
+                </template>
+            </dd>
+
+        </dl>
+    </div>
+</template>
+<script>
+    //这里定义组件
+    Rap.define([], {
+        data() {
+            return {
+                uifunctions: {},
+                uimodules: [],
+                nav_current:''
+            }
+        },
+        methods: {
+            onInit() {
+                whole_axios({
+                    url: 'api/out/menu/take.do',
+                    data: {
+                        appName: appName,
+                        roleName: this.$store.state.currentRoleName
+                    },
+                    method: 'POST'
+                }).then(res => {
+                    var root = res.data;
+                    if (200 === root.code) {
+                        this.uimodules = root.modules;
+                        this.uifunctions = root.functions;
+                    } else {
+                        this.$Message.error({
+                            content: '提取菜单失败: ' + root.message,
+                            duration: 10
+                        });
+                    }
+                }).catch(err => {
+                    console.log(err)
+                    this.$Message.error('提取菜单失败: ' + err);
+                });
+            }
+        },
+        created() {
+            // this.$root.$on('nav-change', (nav) => {
+            //     this.nav_current = nav;
+            // })
+            this.onInit();
+        },
+        mounted() {
+            // const n = document.querySelector(".page-sidebar"), t = new PerfectScrollbar(n);
+        },
+        init(query) {
+            this.nav_current = this.router.hash;
+        },
+    })
+</script>

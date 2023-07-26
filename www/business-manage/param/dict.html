@@ -1,0 +1,166 @@
+<!-- 引用外部样式 -->
+<textarea>
+    <skin_two48>
+        <template slot="top1">
+            <skin_card2 title="字典管理" description=""></skin_card2>
+            <!-- <div class="row">
+                <div class="col-sm-12 col-md-12">
+                <skin_title title="字典管理"></skin_title>
+                </div>
+            </div> -->
+        </template>
+        <template slot="left">
+            <skin_card title="字典管理">
+                <template slot="opes">
+                    <ButtonGroup>
+                        <a href="javascript:;" @click="$refs.info.onAdd()">添加</a>
+                    </ButtonGroup>
+                </template>
+                <template slot="body">
+                    <param_list :config="config_group" ref="group">
+                        <template slot="action" slot-scope="{ item, index }">
+                            <li>
+                              <a href="javascript:void(0)" @click="$refs.info.onShow(item.id)">修改</a> | <a href="javascript:void(0)"
+                                @click="onDictSelect(item)">项维护</a>
+                            </li>
+                          </template>
+                    </param_list>
+                    <param_dict_info @data-change="onDictRefersh" ref="info"></param_dict_info>
+                </template>
+            </skin_card>
+        </template>
+        <template slot="right">
+            <skin_card :title="(undefined==selected_dict.id)?'未选择字典':selected_dict.title">
+                <template slot="opes">
+                    <ButtonGroup>
+                        <a href="javascript:;"
+                            @click="$refs.item.onAdd(selected_dict.name)">添加</a>
+                            <a href="javascript:;"
+                            @click="onBatDelete">删除</a>
+                    </ButtonGroup>
+                </template>
+                <template slot="body">
+                    <Alert v-if="undefined == selected_dict.id"><br><br><br><br>未选择字典<br><br><br><br></Alert>
+                    <param_table v-if="params.dict_name" :columns="columns" :params="params" :config="config" ref="table">
+                        <template slot-scope="{ row, index }" slot="action">
+                            <Button type="primary" size="small" style="margin-right: 5px"
+                                @click="$refs.item.onShow(selected_dict.name,row.id)">修改</Button>
+                            <!-- <Button type="error" size="small" @click="remove(index)">授权</Button> -->
+                        </template>
+                    </param_table>
+
+                    <param_dict_ginfo @data-change="" ref="dgroup"></param_dict_ginfo>
+                    <param_dict_itemInfo @data-change="onRefersh" ref="item">
+                    </param_dict_itemInfo>
+                </template>
+            </skin_card>
+        </template>
+    </skin_two39>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define(['dict/ginfo', 'dict/itemInfo', 'dict/select','table','list','dict/info'], {
+        data() {
+            return {
+                selected_dict :{},
+                params:{},
+                search:{},
+                columns: [
+                    {
+                        type: 'selection',
+                        width: 60,
+                        align: 'center'
+                    },
+                    {
+                        'title': '编码',
+                        'key': 'dd_code',
+                        'sortable': true
+                    }, {
+                        'title': '名称',
+                        'key': 'dd_name',
+                        'sortable': true
+                    }, {
+                        'title': '排序',
+                        'key': 'dd_order',
+                        'sortable': true
+                    }, {
+                        'title': '上级',
+                        'key': 'dd_parentName',
+                        'sortable': true
+                    }, {
+                        title: '操作',
+                        slot: 'action',
+                        width: 200,
+                        align: 'center'
+                    }
+                ],
+                config:{
+                    url: 'api/sys/dict-item/list.do',
+                },
+                config_group:{
+                    url:'api/sys/dict-info/list.do',
+                    size:5,
+                    'titleField':'name',
+                    'desField':'description'
+                },
+            }
+        },
+        methods: {
+            // onSelect(item) {
+            //     console.log('---onSelect');
+            //     console.log(item);
+            //     this.$emit('dict-select', item);
+            // },
+            onDictRefersh(){
+                if(undefined!=this.$refs.group){
+                    this.$refs.group.onRefersh();
+                }
+            },
+            onDatasSelect(datas) {
+                this.datas_selected = datas;
+            },
+            onDictSelect(item) {
+                this.selected_dict = item;
+                this.params.dict_name = item.name;
+                this.params = Object.assign({},this.params);
+            },
+            
+            onRefersh() {
+                var table = this.$refs.table;
+                if(undefined!=table){
+                    table.onRefersh();
+                }
+            },
+            onBatDelete() {
+                var ids = [];
+                this.datas_selected.forEach(element => {
+                    console.log(JSON.stringify(element));
+                    ids.push(element.id);
+                });
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/dict-item/batDelete.do',
+                    data: {
+                        dict_name: this.selected_dict.name,
+                        ids: ids
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        this.onRefersh();
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+            // this.$root.fillTab('字典管理', this.router.hash);
+        }
+    })
+</script>

@@ -1,0 +1,210 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Drawer :title="0==uid?'创建账号':'编辑账号'" :closable="true" v-model="state_show" width="800">
+        <Alert type="warning">账号不能包含中文,如admin</Alert>
+        <Form ref="info" :model="info" :rules="rules" :label-width="80">
+            <Row>
+                <Col span="12">
+                <FormItem label="账号" prop="username">
+                    <Input type="text" v-model="info.username" placeholder="请输入账号" :readonly="info.readonly" />
+                </FormItem>
+                </Col>
+                <Col span="12">
+                <FormItem label="名称" prop="title">
+                    <Input type="text" v-model="info.title" placeholder="请输入名称" />
+                </FormItem>
+                </Col>
+            </Row>
+            <Row>
+                <Col span="12">
+                <FormItem label="手机" prop="phone">
+                    <Input type="text" v-model="info.phone" placeholder="" />
+                    <span style="color: rgba(0, 0, 0, 0.65);"></span>
+                </FormItem>
+                </Col>
+                <Col span="12">
+                <FormItem label="邮箱" prop="email">
+                    <Input type="text" v-model="info.email" placeholder="" />
+                    <span style="color: rgba(0, 0, 0, 0.65);"></span>
+                </FormItem>
+                </Col>
+            </Row>
+            <FormItem label="角色选择">
+                <sys_role_select :value="rids_old" @select-change="onRoleSelect"></sys_role_select>
+            </FormItem>
+            <FormItem label="部门选择" prop="department_id">
+                <sys_region_select :value="region_old" @select-change="onRegionSelect"></sys_region_select>
+                <sys_region_orgSelect :region="info.regionCode" :source="dept_old" @select-change="onOrgSelect"></sys_region_orgSelect>
+            </FormItem>
+            <FormItem>
+                <Button @click="state_show=false" style="margin: 0 16px 0 15%">关闭</Button>
+                <Button type="primary" @click="doSubmit('info')">提交</Button>
+                <Poptip v-if="0!=uid" transfer="true" confirm title="确定要删除该账号?" @on-ok="doRemove">
+                    <Button type="error">删除</Button>
+                </Poptip>
+            </FormItem>
+        </Form>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define(['/sys/role/select', '/sys/region/orgSelect'], {
+        data() {
+            return {
+                state_show: false,
+                uid: 0,
+                info: {
+                    name: '',
+                    login_name: '',
+                    phone: '',
+                    email: '',
+                    user_no: '',
+                    department_id: ''
+                },
+                rids: [], // 选择的角色
+                rids_old: [],//选择的角色原始值
+                dept_old: '',//部门原始值
+                region_old: '',//地域原始值
+                rules: {
+                    'username': [
+                        { required: true, message: '请输入用户名称', trigger: 'blur' },
+                        { type: 'string', min: 2, message: '最少输入两个字符', trigger: 'blur' }
+                    ],
+                    'email': [
+                        { required: true, message: '请输入用户邮箱', trigger: 'blur' },
+                        { type: 'email', message: '请输入正确的邮箱', trigger: 'blur' }
+                    ],
+                    'phone': [
+                        { required: true, message: '请输入用户电话', trigger: 'blur' },
+                        { type: 'string', min: 11, max: 11, message: '请输入11位用户电话', trigger: 'blur' }
+                    ]
+                }
+            }
+        },
+        methods: {
+            onRoleSelect(event) {
+                this.rids = event;
+            },
+            onOrgSelect(event) {
+                this.info.id_org = event;
+            },
+            onRegionSelect(event) {
+                this.info.regionCode = event.code;
+                this.info.regionLevel = event.level;
+                this.info = Object.assign({}, this.info);
+            },
+            onAdd() {
+                this.uid = 0;
+                this.info = {
+                };
+                this.state_show = true;
+                this.rids_old = [];
+                this.dept_old = '0';
+                this.region_old = '';
+            },
+            onShow(uid) {
+                this.uid = uid;
+                this.state_show = true;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/user/show.do',
+                    data: {
+                        id: this.uid
+                    }
+                }).then(res => {
+                    console.info(res);
+                    let root = res.data;
+                    if (200 == root.code) {
+                        this.info = root.data;
+                        this.rids_old = [];
+                        if (undefined != root.roles) {
+                            for (var x = 0; x < root.roles.length; x++) {
+                                this.rids_old.push(root.roles[x].id);
+                            }
+                        }
+                        this.rids = Object.assign([], this.rids_old);
+                        this.dept_old = this.info.id_org + '';
+                        this.region_old = this.info.regionCode;
+                    } else {
+                        this.$Message.error(res.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('提取账号信息【' + uid + '】信息失败')
+                });
+            },
+            doRemove(row) {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/user/delete.do',
+                    data: {
+                        id: this.uid
+                    }
+                }).then(res => {
+                    let data = res.data;
+                    if (data.code === 200) {
+                        this.$Message.success('成功删除账号');
+                        this.$emit('data-change', {});
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            doSubmit(name) {
+                this.$refs[name].validate((valid) => {
+                    if (valid) {
+                        if (0 == this.uid) {
+                            instance_axios({
+                                method: 'post',
+                                url: 'api/sys/user/insert.do',
+                                data: {
+                                    info: this.info,
+                                    rids: this.rids
+                                }
+                            }).then(res => {
+                                let data = res.data;
+                                if (data.code === 200) {
+                                    this.$Message.success('添加账号数据成功');
+                                    this.$emit('data-change', {});
+                                } else {
+                                    this.$Message.error(data.message)
+                                }
+                            }).catch(err => {
+                                console.log(err)
+                                this.$Message.error("创建失败");
+                            })
+                        } else {
+                            instance_axios({
+                                method: 'post',
+                                url: 'api/sys/user/update.do',
+                                data: {
+                                    info: this.info,
+                                    rids: this.rids,
+                                    id: this.uid
+                                }
+                            }).then(res => {
+                                let data = res.data;
+                                if (data.code === 200) {
+                                    this.$Message.success('修改账号数据成功');
+                                    this.$emit('data-change', {});
+                                    // this.getRoleListDataHandle()
+                                } else {
+                                    this.$Message.error(data.message)
+                                }
+                            }).catch(err => {
+                                console.log(err)
+                                this.$Message.error("更新失败");
+                            })
+                        }
+                    } else {
+                        this.$Message.error('校验失败，请重新填写')
+                    }
+                })
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

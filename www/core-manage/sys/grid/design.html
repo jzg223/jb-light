@@ -1,0 +1,676 @@
+<textarea>
+  <div>
+    <div class="tool">
+      <button id="" class="btn btn-primary" style="padding:3px 6px;font-size: 12px;margin-right: 10px;">下载</button>
+    </div>
+    <div id="luckysheet" style="margin:0px;padding:0px;position:absolute;left: 0px;top: 0px;bottom:0px;right:0px;"></div>
+    <view_sys_grid_import @data-change="onDesignChange" ref="import"></view_sys_grid_import>
+    <view_sys_grid_cell @data-change="onCellChange" ref="cell"></view_sys_grid_cell>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/view/sys/form/detail', 'import', 'cell'], {
+    props: ['fid', 'formInfo', 'ope',],
+    data: function () {
+      return {
+        range_select: {},//当前选区
+        cells: {},
+        row_select: 0,
+        col_select: 0,
+        id: 0
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onDesignChange(grid) {
+        console.log(JSON.stringify(grid));
+        var styles = grid.styles;
+        if (undefined == styles) {
+          return;
+        }
+
+        var columnWidths = {};
+        var widths = grid.columnWidths;
+        for (var x = 0; x < widths.length; x++) {
+          var width = widths[x];
+          columnWidths[x + ''] = parseInt(width / 100 * 4);
+        }
+        var rowHeights = {};
+        var heights = grid.rowHeights;
+        for (var x = 0; x < heights.length; x++) {
+          var height = heights[x];
+          rowHeights[x + ''] = parseInt(height / 15);
+        }
+        luckysheet.setSheetAdd({
+          'sheetObject': {
+            // "name": "表单设计", 
+            column: grid.totalCol, row: grid.totalRow,
+            config: {
+              'columnlen': columnWidths,
+              'rowlen': rowHeights
+            }
+          }
+        });
+        luckysheet.setSheetDelete({ order: 1 });
+        for (var key in styles) {
+          var strs = key.split('-');
+          var row = parseInt(strs[0]) - 1;
+          var col = parseInt(strs[1]) - 1;
+          var cell = styles[key];
+          luckysheet.setCellValue(row, col, cell.value);
+        }
+
+      },
+      showCell(cell) {
+        if (undefined == cell) {
+          return '';
+        }
+        if ('label' == cell.type) {
+          return cell.title;
+        }
+        return cell.type + "-" + cell.title;
+      },
+      onCellChange(json) {
+        if (undefined != json) {
+          this.cells[this.select_row + '-' + this.select_col] = json;
+          this.cells = Object.assign({}, this.cells);
+
+          luckysheet.setCellValue(this.row_select - 1, this.col_select - 1, {
+            "m": json.title,
+            "ct": {
+              "fa": "General",
+              "t": "g"
+            },
+            "v": json.title,
+            "bl": 1,
+            "ps": {
+              "left": null,
+              "top": null,
+              "width": null,
+              "height": null,
+              "value": json.title + '【' + json.name + '】',
+              "isshow": false
+            }
+          })
+        }
+      },
+      onSelect(rowIndex, cellIndex) {
+        this.select_row = rowIndex;
+        this.select_col = cellIndex;
+        var cell = this.cells[rowIndex + "-" + cellIndex];
+        this.$refs.cell.onShow(cell);
+        // this.info = Object.assign({}, this.rows[rowIndex][cellIndex]);
+      },
+      onShow(rowIndex, cellIndex) {
+        console.log('click');
+        this.select_row = rowIndex;
+        this.select_col = cellIndex;
+        this.select_style = this.styles[rowIndex + '-' + cellIndex];
+        this.color = this.select_style['color'];
+        this.bcolor = this.select_style['border-color'];
+        this.bgcolor = this.select_style['background-color'];
+        if (undefined == this.color) {
+          this.color = '';
+        }
+        if (undefined == this.bcolor) {
+          this.bcolor = '';
+        }
+        if (undefined == this.bgcolor) {
+          this.bgcolor = '';
+        }
+      },
+      onRemove(key) {
+        delete this.cells[key];
+        this.cells = Object.assign({}, this.cells);
+      },
+      onCellSelect(key) {
+        var strs = key.split('-');
+        this.select_row = parseInt(strs[0]);
+        this.select_col = parseInt(strs[1]);
+      },
+      onSave(name) {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/grid/update.do',
+          data: {
+            info: {
+              design: JSON.stringify(luckysheet.getSheet()) + ' ',
+              input: JSON.stringify(this.cells) + ' '
+            },
+            id: this.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onInit() {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/grid/show.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var info = root.data;
+            var design = info.design;
+            if (undefined != info.design && '' != info.design) {
+              design = JSON.parse(info.design);
+            }
+            var input = info.input;
+            if(undefined != input && '' != input){
+              this.cells = JSON.parse(input);
+            }
+            this.onDraw(design);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onDraw(design) {
+
+        var sheet = {
+          "name": "表单设计",
+        };
+        if (undefined != design) {
+          sheet = design;
+        }
+        var _this = this;
+        var options = {
+          container: 'luckysheet', //luckysheet为容器id
+          title: '项目表单',
+          lang: 'zh',
+          showsheetbarConfig: true,
+          showsheetbar: true,
+          showinfobar: true,
+          data: [sheet],
+          hook: {
+            cellMousedown: function (cell, postion, sheetFile, ctx) {
+            }, cellEditBefore: function (cell, postion, sheetFile, ctx) {
+            },
+            rangeSelect(sheet, range) {
+              console.log(range);
+              if (undefined != range && range.length > 0) {
+
+                var columns = range[0].column;
+                var rows = range[0].row;
+                // if (columns[0] == columns[1] && rows[0] == rows[1]) {
+                  
+                // }
+                _this.row_select = rows[0] + 1;
+                  _this.col_select = columns[0] + 1;
+              }
+            }
+          },
+          functionButton: '<button id="" class="btn btn-primary import" style="padding:3px 6px;font-size: 12px;margin-right: 10px;">导入</button>' +
+            '<button id="" class="btn btn-primary binding" style="padding:3px 6px;font-size: 12px;margin-right: 10px;">绑定</button>' +
+            '<button id="" class="btn btn-primary unbinding" style="padding:3px 6px;font-size: 12px;margin-right: 10px;">解绑</button>'+
+            '<button id="" class="btn btn-primary save" style="padding:3px 6px;font-size: 12px;margin-right: 10px;">保存</button>'
+
+        }
+        luckysheet.create(options);
+
+        setTimeout(() => {
+          $('.binding').bind('click', function () {
+            _this.onSelect(_this.row_select, _this.col_select);
+          })
+          $('.unbinding').bind('click', function () {
+            delete _this.cells[_this.row_select + '-' + _this.col_select];
+            _this.cells = Object.assign({}, _this.cells);
+          })
+          $('.import').bind('click', function () {
+            _this.$refs.import.onShow();
+          })
+          $('.save').bind('click', function () {
+            _this.onSave()
+          })
+        }, 1000);
+      }
+    },
+    init: function (query, search) {
+      var id = query.id;
+      if (undefined != id && 0 != id) {
+        this.id = id;
+        this.onInit();
+      }
+    },
+    watch: {
+    }
+  })
+</script>
+<style>
+  .zb {
+    background: yellow !important;
+  }
+
+  .demo-split {
+    height: 500px;
+    border: 1px solid #dcdee2;
+  }
+
+  .demo-split-pane {
+    padding: 10px;
+  }
+
+  .demo-split-pane.no-padding {
+    height: 200px;
+    padding: 0;
+  }
+
+  .designDiv td {
+    background: #fff;
+  }
+
+  .designTable {
+    FONT-SIZE: 9pt;
+    color: #000;
+    margin-bottom: 10px;
+    border-collapse: collapse;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 0;
+    height: 0;
+    /* -moz-user-select: none; */
+  }
+
+  .designTable td {
+    border: 1px solid #C0C0C0;
+    color: #000;
+    overflow: hidden;
+    /*padding-left: 5px;*/
+    /*padding-right: 5px;*/
+    text-overflow: ellipsis;
+    /*word-break: break-all;
+	word-wrap: break-word;*/
+    white-space: nowrap;
+    empty-cells: show;
+  }
+
+  .cellHeader {
+    text-align: center;
+    margin: 0px 0 0px 0;
+    background-color: #D4E1F1;
+    background-image: url("icons/white-to.gif");
+    /*border-top:none;*/
+    border-top: 1px solid #84A0C4;
+    border-left: 1px solid #84A0C4;
+    border-right: 1px solid #84A0C4;
+    border-bottom: 1px solid #84A0C4;
+    color: #15428B;
+  }
+
+  .lockHeader {
+    text-align: center;
+    margin: 0px 0 0px 0;
+    background-color: #D4E1F1;
+    background-image: url("icons/white-to.gif");
+    border: 1px solid #84A0C4;
+    color: #15428B;
+  }
+
+  .selectCellHeader {
+    background: url("icons/white-tp.gif") repeat-x scroll 0 0 #FFC57E !important;
+  }
+
+  .rowHeader {
+    text-align: center;
+    background: #e1e8f0;
+    background-color: #D4E1F1;
+    border: 1px solid #84A0C4;
+    color: #15428B;
+    /*border: 1px solid #d0d7e5;*/
+  }
+
+  .selectRowHeader {
+    background: #FFC57E !important;
+  }
+
+  .rowFudong,
+  .cellFudong {
+    background: #00ff00 !important;
+  }
+
+  .tableHead th {
+    background: #0000FF !important;
+  }
+
+  select {
+    heihgt: 10px;
+    line-height: 10px;
+  }
+
+  .mouseoutclass {
+    border-right: gray 1px solid;
+    border-top: white 1px solid;
+    border-left: white 1px solid;
+    border-tottom: gray 1px solid;
+  }
+
+  .modTD {
+    background: #eaecf5 !important;
+    border-left-width: 0;
+    border-top-width: 0;
+    border-right-color: buttonface !important;
+    border-bottom-color: buttonface !important;
+  }
+
+  .selectTD {
+    background: #eaecf5;
+    /* border: 2px solid red !important; */
+  }
+
+  .title .rowHeader {
+    background: #3399FF !important;
+  }
+
+  .group .groupHead .rowHeader {
+    background: #CC99FF !important;
+  }
+
+  .group .groupDetail .rowHeader {
+    background: #FFFF99 !important;
+  }
+
+  .group .groupTail .rowHeader {
+    background: #CC99FF !important;
+  }
+
+
+  .trHide td,
+  .trHide th {
+    border-top-width: 0px;
+    line-height: 0;
+  }
+
+  /*
+.lastTR td,.lastTR th {
+	border-bottom: 1px solid #000;
+}*/
+
+  tbody:last-child {
+    border-bottom: 1px solid #000;
+  }
+
+  .lastTD {
+    /*border-right: 1px solid #000;*/
+  }
+
+  .manualColumnResizer {
+    background-color: transparent;
+    cursor: col-resize;
+    height: 25px;
+    position: absolute;
+    right: -1px;
+    top: 0;
+    width: 5px;
+    z-index: 999;
+  }
+
+  .manualRowResizer {
+    background-color: transparent;
+    cursor: row-resize;
+    width: 25px;
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    height: 5px;
+    z-index: 999;
+  }
+
+  th .relative {
+    padding: 2px 4px;
+    position: relative;
+  }
+
+  th .rowrelative {
+    padding: 0px;
+    position: relative;
+    height: 100%;
+  }
+
+  td .relative {
+    padding: 2px 4px;
+    position: relative;
+  }
+
+  td .rowrelative {
+    padding: 0px;
+    position: relative;
+    height: 100%;
+  }
+
+  select {
+    vertical-align: middle;
+    background: none repeat scroll 0 0 #F9F9F9;
+    border-color: #666666 #CCCCCC #CCCCCC #666666;
+    border-style: solid;
+    border-width: 1px;
+    color: #333;
+    padding: 2px;
+  }
+
+  .icon-save {
+    background: url('icons/save-16x16.png') no-repeat center center;
+  }
+
+  .icon-bold {
+    background: url('icons/bold-16x16.png') no-repeat center center;
+  }
+
+  .icon-italic {
+    background: url('icons/italic-16x16.png') no-repeat center center;
+  }
+
+  .icon-underline {
+    background: url('icons/underline-16x16.png') no-repeat center center;
+  }
+
+  .icon-merge {
+    background: url('icons/merge.gif') no-repeat center center;
+  }
+
+  .icon-unmerge {
+    background: url('icons/unMerge.gif') no-repeat center center;
+  }
+
+  .icon-addRowBefore {
+    background: url('icons/insertRow1.gif') no-repeat center center;
+  }
+
+  .icon-addRowAfter {
+    background: url('icons/insertRow2.gif') no-repeat center center;
+  }
+
+  .icon-deleteRow {
+    background: url('icons/delrow.gif') no-repeat center center;
+  }
+
+  .icon-addColBefore {
+    background: url('icons/insertCol1.gif') no-repeat center center;
+  }
+
+  .icon-addColAfter {
+    background: url('icons/insertCol2.gif') no-repeat center center;
+  }
+
+  .icon-deleteCol {
+    background: url('icons/delCol.gif') no-repeat center center;
+  }
+
+  .icon-left {
+    background: url('icons/left.gif') no-repeat center center;
+  }
+
+  .icon-center {
+    background: url('icons/center.gif') no-repeat center center;
+  }
+
+  .icon-right {
+    background: url('icons/right.gif') no-repeat center center;
+  }
+
+  .icon-top {
+    background: url('icons/top.gif') no-repeat center center;
+  }
+
+  .icon-middle {
+    background: url('icons/middle.gif') no-repeat center center;
+  }
+
+  .icon-bottom {
+    background: url('icons/bottom.gif') no-repeat center center;
+  }
+
+  .icon-wrap {
+    background: url('icons/export.png') no-repeat center center;
+  }
+
+  .icon-solid {
+    background: url('icons/border/solid.gif') no-repeat center center;
+  }
+
+  .icon-dashed {
+    background: url('icons/border/dashed.gif') no-repeat center center;
+  }
+
+  .icon-around {
+    background: url('icons/border/solid_around.gif') no-repeat center center;
+  }
+
+  .icon-solid_bottom {
+    background: url('icons/border/solid_bottom.gif') no-repeat center center;
+  }
+
+  .icon-solid_left {
+    background: url('icons/border/solid_left.gif') no-repeat center center;
+  }
+
+  .icon-solid_right {
+    background: url('icons/border/solid_right.gif') no-repeat center center;
+  }
+
+  .icon-solid_top {
+    background: url('icons/border/solid_top.gif') no-repeat center center;
+  }
+
+  .icon-solid {
+    background: url('icons/border/solid.gif') no-repeat center center;
+  }
+
+  .icon-lock {
+    background: url('icons/lock.png') no-repeat center center;
+  }
+
+  .icon-unlock {
+    background: url('icons/unlock.png') no-repeat center center;
+  }
+
+  .jSMenu * {
+    border-color: inherit !important;
+    border-width: 1px;
+    text-decoration: none !important;
+    width: auto;
+  }
+
+  .jSMenu ul,
+  .jSMenu div {
+    cursor: pointer;
+    list-style: none outside none;
+  }
+
+  .colorPickers * {
+    background-color: transparent !important;
+    display: inline-block;
+    height: 16px !important;
+    width: 16px !important;
+  }
+
+  .wtBorder {
+    font-size: 0;
+    position: absolute;
+  }
+
+  .corner {
+    cursor: crosshair;
+    font-size: 0;
+  }
+
+  .wrapTD {
+    overflow: hidden;
+    word-break: break-all !important;
+    word-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
+  .cell_solid {
+    border-style: solid !important;
+  }
+
+  .cell_dashed {
+    border-style: dashed !important;
+  }
+
+  .cell_left {
+    border-left-style: solid !important;
+    border-right-style: none !important;
+    border-top-style: none !important;
+    border-bottom-style: none !important;
+  }
+
+  .cell_right {
+    border-left-style: none !important;
+    border-right-style: solid !important;
+    border-top-style: none !important;
+    border-bottom-style: none !important;
+  }
+
+  .cell_top {
+    border-left-style: none !important;
+    border-right-style: none !important;
+    border-top-style: solid !important;
+    border-bottom-style: none !important;
+  }
+
+  .cell_bottom {
+    border-left-style: none !important;
+    border-right-style: none !important;
+    border-top-style: none !important;
+    border-bottom-style: solid !important;
+  }
+
+  .cell_around {
+    border-style: none !important;
+  }
+
+  .moreButton {
+    background: url('icons/moreButton.gif') no-repeat center center;
+  }
+
+  .err {
+    border: 1px solid red !important;
+  }
+
+  .err span {
+    width: 99%;
+    height: 99%;
+    background: red;
+  }
+
+  .hidden {
+    display: none;
+  }
+</style>

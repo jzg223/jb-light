@@ -1,0 +1,176 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Drawer title="警员维护" :closable="true" v-model="state_show" width="1000">
+        <components_design_form name="client-form" :rules="rules" :source="info" ref="form">
+            <template slot="org-select">
+                <sys_region_orgSelect2 :region="region_old" :source="dept_old" 
+                @value-change="$refs.form.setItem('orgId',$event)" 
+                @title-change="$refs.form.setItem('orgName',$event)">
+                </sys_region_orgSelect2>
+            </template>
+            <template slot="region-select">
+                <sys_region_select style="width: 300px;" :value="region_old" @select-change="onRegionSelect"></sys_region_select>
+            </template>
+            <FormItem slot="submit">
+                <Button @click="state_show=false" style="margin: 0 16px 0 15%">关闭</Button>
+                <Button type="primary" @click="doSubmit('roleSelected')">提交</Button>
+                <Poptip v-if="0!=rid" confirm title="确定要删除该角色?" @on-ok="doRemove">
+                    <Button type="error">删除</Button>
+                </Poptip>
+            </FormItem>
+        </components_design_form>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define(['/components/design/form','/sys/region/orgSelect2','/sys/region/select'], {
+        data() {
+            return {
+                region_old:'',
+                dept_old:'',
+                state_show: false,
+                rid: 0,
+                info: {
+                },
+                rules: {
+                    'name': [
+                        { required: true, message: '请输入角色名', trigger: 'blur' },
+                        { type: 'string', min: 2, message: '最少输入两个字符', trigger: 'blur' }
+                    ],
+                    'sex': [
+                        { required: true, message: '请选择性别', trigger: 'blur' },
+                    ],
+                    'email': [
+                        { required: true, message: '请输入登录名', trigger: 'blur' },
+                    ],
+                    'regionCode': [
+                        { required: true, message: '未选择地域', trigger: 'blur' },
+                    ],
+                    'orgId': [
+                        { required: true, message: '未选择机构', trigger: 'blur' },
+                    ],
+                    'copType':[
+                        { required: true, message: '未选择警种', trigger: 'blur' },
+                    ],
+                    'nickname':[
+                        { required: true, message: '未输入姓名', trigger: 'blur' },
+                    ],
+                }
+            }
+        },
+        methods: {
+            onOrgSelect(event) {
+                this.info.orgId = event.value;
+                this.info.orgName = event.label;
+            },
+            onRegionSelect(event) {
+                this.region_old =event.code
+                this.$refs.form.setItem('regionCode',event.code)
+                this.$refs.form.setItem('regionLevel',event.level)
+            },
+            onAdd() {
+                this.rid = 0;
+                this.info = {
+                };
+                this.info = Object.assign({},this.info)
+                this.state_show = true;
+                this.region_old = '';
+                this.dept_old = '';
+            },
+            onShow(rid) {
+                this.rid = rid;
+                this.state_show = true;
+                this.info = {};
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/client/show.do',
+                    data: {
+                        id: this.rid
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (200 == root.code) {
+                        this.info = root.data;
+                        this.info = Object.assign({}, this.info);
+                        this.region_old = this.info.regionCode;
+                        this.dept_old = this.info.orgId;
+                    } else {
+                        this.$Message.error(root.message);
+                        this.info = Object.assign({}, this.info);
+                    }
+                }).catch(err => {
+                    console.log(err)
+                    this.$Message.error('提取角色【' + rid + '】信息失败')
+                });
+            },
+            doRemove() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/client/delete.do',
+                    data: {
+                        id: this.rid
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.$Message.success('删除数据成功');
+                        this.$emit('data-change', {});
+                        this.state_show = false;
+                        // this.getRoleListDataHandle()
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            async doSubmit(name) {
+
+                var json = await this.$refs.form.take();
+                if (false === json) {
+                    return;
+                }
+                if (0 == this.rid) {
+                    instance_axios({
+                        method: 'post',
+                        url: 'api/sys/client/insert.do',
+                        data: {
+                            info: json
+                        }
+                    }).then(res => {
+                        let data = res.data;
+                        if (data.code === 200) {
+                            this.$Message.success('添加数据成功');
+                            this.state_show = false;
+                            this.$emit('data-change', {});
+                        } else {
+                            this.$Message.error(data.message)
+                        }
+                    })
+                } else {
+                    instance_axios({
+                        method: 'post',
+                        url: 'api/sys/client/update.do',
+                        data: {
+                            info: json,
+                            id: this.rid
+                        }
+                    }).then(res => {
+                        let data = res.data
+                        if (data.code === 200) {
+                            this.$Message.success('修改数据成功');
+                            this.state_show = false;
+                            this.$emit('data-change', {});
+                            // this.getRoleListDataHandle()
+                        } else {
+                            this.$Message.error(data.message)
+                        }
+                    })
+                }
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

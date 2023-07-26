@@ -1,0 +1,104 @@
+<textarea>
+    <div>
+      <div class="demo-upload-list">
+          <!-- <Avatar v-if="''!=path" :src="fj_url+path" /> -->
+          <Avatar v-if="''!=path" :src="fj_url+path" />
+      </div>
+      <div class="demo-upload-list">
+          <Upload ref="upload" :show-upload-list="false" :on-success="handleSuccess" :accept="cell.uploadType" :disabled="'100'===auth" 
+          :max-size="cell.sizeLimit" :on-format-error="handleFormatError" :on-exceeded-size="handleMaxSize" :before-upload="handleBeforeUpload"
+          type="drag" >
+            <Icon type="md-cloud-upload" size="20"></Icon>
+        </Upload>
+      </div>
+    </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source'],
+    data() {
+      return {
+        path: '',
+        auth:'010',
+      }
+    },
+    methods: {
+      uuid() {
+        function S4() {
+          return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+        }
+        return (S4() + S4() + S4() + S4() + S4() + S4() + S4() + S4());
+      },
+      handleView(name) {
+      },
+      handleRemove(file) {
+      },
+      handleSuccess(res, file) {
+      },
+      handleFormatError(file) {
+        this.$Notice.warning({
+          title: 'The file format is incorrect',
+          desc: 'File format of ' + file.name + ' is incorrect, please select jpg or png.'
+        });
+      },
+      handleMaxSize(file) {
+        this.$Notice.warning({
+          title: 'Exceeding file size limit',
+          desc: 'File  ' + file.name + ' is too large, no more than 2M.'
+        });
+      },
+      handleBeforeUpload(file) {
+
+        let param = new FormData(); //创建form对象
+        param.append('upload', file, file.name);//通过append向form对象添加数据
+        console.log(param.get('upload')); //FormData私有类对象，访问不到，可以通过get判断值是否传进去
+        let config = {
+          headers: { 'Content-Type': 'multipart/form-data' } //这里是重点，需要和后台沟通好请求头，Content-Type不一定是这个值
+        };
+
+        instance_axios.post(fj_url + 'upload', param, config).then(res => {
+          var root = res.data;
+          if (200 == root.code) {
+            this.$Message.success('上传成功');
+            this.path = root.message;
+            this.$emit("change", { 'field': this.cell.name, 'value': this.path })
+          } else {
+            this.$Message.error('上传失败:' + root.message);
+          }
+          console.log(res)
+        }, err => {
+          this.$Message.error('上传失败:' + err);
+        }, () => {
+        });
+        return false;
+      },
+    },
+    mounted() {
+    },
+    watch: {
+      source: {
+        handler(new_val) {
+          if(undefined == new_val){
+            this.path = '';
+          }else{
+            this.path = this.source;
+          }
+          
+        },
+        immediate: true
+      }
+    }
+  });
+</script>
+<style>
+  .demo-upload-list {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    line-height: 30px;
+    overflow: hidden;
+    position: relative;
+    margin-right: 4px;
+  }
+</style>

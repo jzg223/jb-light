@@ -1,0 +1,46 @@
+<template>
+
+    <div class="container-fluid" style="padding-bottom: 66px;">
+        <div class="index-pos-box bgw mtb15 radius4">
+            <div class="position f12 c6 pull-left" style="background:none;padding-left:15px">
+               {{description}}
+            </div>
+            <span class="pull-right f12 c6" style="line-height:52px; margin-right:15px">
+                
+            </span>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-4 pull-left pd0">
+            <div class="pr8">
+                <slot name='left'></slot>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-8 pull-left pd0">
+            <div class="pl7">
+                <slot name='right'></slot>
+            </div>
+        </div>
+    </div>
+
+</template>
+<script>
+    Rap.define([], {
+        props: ['title','description'],
+        mixins: [],
+        data: function () {
+            return {
+            }
+        },
+        created: function () {
+        },
+        mounted() {
+
+        },
+        methods: {
+
+        },
+        watch: {
+        },
+        init(query) {
+        }
+    })
+</script>

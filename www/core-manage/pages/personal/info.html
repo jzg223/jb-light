@@ -1,0 +1,81 @@
+<textarea>
+  <skin_card title="个人资料">
+    <template slot="opes">
+    </template>
+    <template slot="body">
+      <components_design_form ref="form" name="personal-form" :rules="rules" :source="info">
+        <FormItem slot="submit">
+          <Button type="primary" @click="doSubmit('info')">提交</Button>
+        </FormItem>
+      </components_design_form>
+    </template>
+  </skin_card>
+</textarea>
+<script>
+
+  Rap.define(['/components/design/form'], {
+    props: {
+    },
+    data: function () {
+      return {
+        info: {
+        },
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+        }
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    methods: {
+      async doSubmit(name) {
+        var json = await this.$refs.form.take();
+        if (false === json) {
+          return;
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/personal/submit.do',
+          data: {
+            info: json,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+
+      },
+      onInit() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/personal/show.do',
+          data: {
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.info = root.data;
+            this.info = Object.assign({}, this.info);
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>

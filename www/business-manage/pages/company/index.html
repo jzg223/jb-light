@@ -1,0 +1,85 @@
+<textarea>
+    <skin_card title="企业">
+      <template slot="opes">
+        <a href="javascript:void(0)" @click="$refs.info.onAdd()">添加</a>
+      </template>
+      <template slot="body">
+        <components_design_searchform name="name-search" @data-change="onSearch" ></components_design_searchform>
+        <components_design_table ref="table" :search="search" :params="params" name="company-info-list" @datas-selected="onSelectedChange"> 
+          <template slot-scope="{ row, index }" slot="action">
+            <Poptip transfer="true" confirm title="确定要删除?" @on-ok="doRemove(row)">
+            <a href="javascript:void(0)">删除</a></Poptip> | 
+            <a href="javascript:void(0)" @click="$refs.info.onShow(row.id)">查看</a>
+          </template>
+          <template slot-scope="{ row, index }" slot="lx">
+            {{lxs[row.type]}}
+          </template>
+          <template slot="opes">
+            <!-- <Poptip  transfer="true" confirm title="确定要删除?" @on-ok="onBatRemove">
+              <Button type="primary">删除</Button>
+            </Poptip> -->
+          </template>
+        </components_design_table>
+        <components_company_info @data-change="onRefersh" ref="info"></components_company_info>
+      </template>
+	</skin_card>
+</textarea>
+  <script>
+    Rap.define(['/components/design/table', '/components/design/searchform',
+        '/components/company/info'], {
+      data: function () {
+        return {
+          search: {},
+          params: {
+          },
+          datas_selected:[]
+        }
+      },
+      created: function () {
+      },
+      mounted() {
+      },
+      methods: {
+        onBatRemove() {
+          var ids = [];
+          if(0 == this.datas_selected.length){
+            this.$Message.error("未选择数据");
+            return;
+          }
+          for(var item of this.datas_selected){
+            ids.push(item.id);
+          }
+          onSend('api/manage/company/bat-delete.do',{ids:ids},(root)=>{
+            if (200 == root.code) {
+              this.$Message.success("删除成功");
+              this.onRefersh();
+            }else{
+              this.$Message.error(root.message);
+            }
+          })
+        },
+        doRemove(row) {
+          onSend('api/manage/company/delete.do',{id:row.id},(root)=>{
+            if (200 == root.code) {
+              this.$Message.success("删除成功");
+              this.onRefersh();
+            }else{
+              this.$Message.error(root.message);
+            }
+          })
+        },
+        onSearch(search) {
+          this.search = Object.assign({}, search);
+          this.$refs.table.onSearch();
+        },
+        onSelectedChange(values) {
+          this.datas_selected = values;
+        },
+        onRefersh() {
+          this.$refs.table.onRefersh();
+        },
+      },
+      init: function (query, search) {
+      }
+    })
+  </script>

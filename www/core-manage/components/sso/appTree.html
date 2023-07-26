@@ -1,0 +1,94 @@
+<textarea>
+    <div>
+        <Tree ref="tree" v-if="1==state" show-checkbox :data="nodes" @on-select-change="onSelect"></Tree>
+    </div>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['value'],
+        data() {
+            return {
+                map: {},
+                nodes: [],
+                alls: [],
+                state: 0 // 状态
+            }
+        },
+        methods: {
+            onTake() {
+                //提取所选节点,供授权组件调用
+                var nodes = this.$refs.tree.getCheckedAndIndeterminateNodes();
+                var ids = [];
+                for (var index in nodes) {
+                    var node = nodes[index];
+                    ids.push({ 'res_id': node.key });
+                }
+                return ids;
+            },
+            onRefersh() {
+                this.state = 0;
+                var user = this.$store.state.user.uid;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/application/all.do',
+                    data: {
+                        app: this.app
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.state = 1;
+                        var alls = root.datas;
+                        this.alls = root.datas;
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            var checked = (undefined != this.map[node.app_name]) ? true : false;
+                            needs.push({ 'key': node.app_name + '', 'title': node.app_title, checked: checked });
+                        }
+                        this.nodes = needs;
+                        this.nodes = Object.assign([], this.nodes);
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    console.log(err);
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onSelect(nodearray, node) {
+                console.info(JSON.stringify(nodearray));
+                if (nodearray.length > 0) {
+                    this.$emit("select-change", nodearray[0]);
+                } else {
+                    this.$emit("select-change", {});
+                }
+
+            }
+        },
+        created() {
+        },
+        init: function () {
+        },
+        watch: {
+            value: {
+                handler(new_val, oldName) {
+                    this.map = {};
+                    if (undefined != new_val) {
+                        for (var node of new_val) {
+                            if ('app' == node.type) {
+                                this.map['' + node.resource] = '';
+                            }
+                        }
+                    }
+                    this.onRefersh()
+                },
+                immediate: true
+            },
+        }
+    })
+
+</script>

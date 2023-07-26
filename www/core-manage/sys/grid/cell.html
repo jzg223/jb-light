@@ -1,0 +1,188 @@
+<textarea>
+  <Drawer title="输入项配置" :closable="true" v-model="state_show" width="700">
+  <Form ref="info" :model="info" :rules="rules" :label-width="100" >
+    <Row>
+      <Col span="12">
+        <FormItem label="名称" prop="name">
+          <Input type="text" v-model="info.name" placeholder="" />
+        </FormItem>
+      </Col>
+      <Col span="12">
+        <FormItem label="标题" prop="title">
+          <Input type="text" v-model="info.title" placeholder="" />
+        </FormItem>
+      </Col>
+    </Row>
+    <Row>
+      <Col span="12">
+        <FormItem label="类型" prop="type">
+          <Select v-model="info.type" transfer transfer="true">
+              <Option v-for="item in types" :value="item.value" :key="item.value">{{ item.label }}</Option>
+          </Select>
+        </FormItem>
+      </Col>
+      <Col span="12">
+        <FormItem label="输入类型" prop="text_type" v-if="'text'==info.type">
+          <Select v-model="info.text_type" transfer="true">
+              <Option v-for="item in types_text" :value="item.value" :key="item.value">{{ item.label }}</Option>
+          </Select>
+        </FormItem>
+      </Col>
+    </Row>
+    
+    <FormItem label="查询sql" prop="select_sql" v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type||'tree'==info.type">
+      <Input type="text" v-model="info.select_sql" placeholder="" />
+    </FormItem>
+    <Row v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type||'tree'==info.type">
+      <Col span="12">
+        <FormItem label="value字段" prop="select_nameField"  >
+          <Input type="text" v-model="info.select_nameField" placeholder="" />
+        </FormItem>
+      </Col>
+      <Col span="12">
+        <FormItem label="title字段" prop="select_titleField" >
+          <Input type="text" v-model="info.select_titleField" placeholder="" />
+        </FormItem>
+      </Col>
+    </Row>
+    <Row  v-if="'tree'==info.type">
+      <Col span="12">
+        <FormItem label="id字段" prop="select_idField" >
+          <Input type="text" v-model="info.select_idField" placeholder="" />
+        </FormItem>
+      </Col>
+      <Col span="12">
+        <FormItem label="pid字段" prop="select_pidField"  v-if="'tree'==info.type">
+          <Input type="text" v-model="info.select_pidField" placeholder="" />
+        </FormItem>
+      </Col>
+    </Row>
+    <Row>
+      <Col span="12">
+        <FormItem label="名称字段" prop="titleField" v-if="'select'==info.type||'radio'==info.type||'checkbox'==info.type||'tree'==info.type">
+          <Input type="text" v-model="info.titleField" placeholder="" />
+        </FormItem>
+      </Col>
+      <Col span="12">
+        <FormItem label="本地存储" prop="dict" v-if="'select'==info.type||'radio'==info.type||'checkbox'==info.type||'tree'==info.type">
+          <Input type="text" v-model="info.dict" placeholder="" />
+        </FormItem>
+      </Col>
+    </Row>
+    
+    <FormItem label="选项" prop="select_options"  v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type">
+      <Input v-model="info.select_options" placeholder="" type="textarea" :rows="2"  />
+    </FormItem>
+    <FormItem label="接口" prop="select_url"  v-if="'select'==info.type || 'radio'==info.type ||'checkbox'==info.type ||'tree'==info.type ">
+      <Input v-model="info.select_url" />
+    </FormItem>
+
+    <FormItem label="组件" prop="comname"  v-if="'my'==info.type">
+      <Input type="text" v-model="info.comname" placeholder="" />
+    </FormItem>
+    <FormItem label="只读" prop="readonly"  v-if="'my'!=info.type">
+      <!-- <i-switch v-model="info.readonly" @on-change="" :true-value="1" :false-value="0"/> -->
+      <RadioGroup v-model="info.readonly">
+        <Radio label="0">编辑</Radio>
+        <Radio label="1">不为空只读</Radio>
+        <Radio label="2">不可编辑</Radio>
+        <!-- <Radio label="3">不可编辑</Radio> -->
+      </RadioGroup>
+    </FormItem>
+
+    <FormItem label="返回类型" prop="returnType"  v-if="'date'==info.type||'time'==info.type">
+      <!-- <i-switch v-model="info.readonly" @on-change="" :true-value="1" :false-value="0"/> -->
+      <RadioGroup v-model="info.returnType">
+        <Radio label="0">整形</Radio>
+        <Radio label="1">字符</Radio>
+        <!-- <Radio label="3">不可编辑</Radio> -->
+      </RadioGroup>
+    </FormItem>
+    <FormItem label="是否多选" prop="isMul"  v-if="'select'==info.type">
+      <!-- <i-switch v-model="info.readonly" @on-change="" :true-value="1" :false-value="0"/> -->
+      <RadioGroup v-model="info.isMul">
+        <Radio label="0">否</Radio>
+        <Radio label="1">是</Radio>
+        <!-- <Radio label="3">不可编辑</Radio> -->
+      </RadioGroup>
+    </FormItem>
+    
+
+    <FormItem label="数据改变回调" prop="changeCallBack" v-if="'select'==info.type||'radio'==info.type||'checkbox'==info.type">
+      <Input type="textarea" v-model="info.changeCallBack" placeholder="" :rows="3" />
+    </FormItem>
+    
+    <FormItem>
+        <Button type="primary" @click="doSubmit">确认</Button>
+    </FormItem>
+  </Form>
+</Drawer>
+
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['fid', 'formInfo', 'ope'],
+    data: function () {
+      return {
+        state_show: false,
+        types: [
+          { 'value': 'text', 'label': '文本输入' },
+          { 'value': 'select', 'label': '下拉选择' },
+          { 'value': 'tree', 'label': '树选择' },
+          { 'value': 'radio', 'label': '单选' },
+          { 'value': 'checkbox', 'label': '复选' },
+          { 'value': 'date', 'label': '日期选择' },
+          { 'value': 'time', 'label': '时间选择' },
+          { 'value': 'file', 'label': '文件上传' },
+          { 'value': 'image', 'label': '图像上传' },
+          { 'value': 'fj', 'label': '附件上传' },
+          { 'value': 'fattext', 'label': '富文本' },
+          { 'value': 'my', 'label': '自定义' },
+        ],
+        types_text: [
+          { 'value': 'text', 'label': '文本' },
+          { 'value': 'password', 'label': '密码' },
+          { 'value': 'textarea', 'label': '大文本' },
+          { 'value': 'url', 'label': '网址' },
+          { 'value': 'email', 'label': '邮箱' },
+          { 'value': 'date', 'label': '日期' },
+          { 'value': 'number', 'label': '数字' },
+          { 'value': 'tel', 'label': '电话' },
+        ],
+        info: {},
+        rules: {},
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      doSubmit(name) {
+        this.$emit('data-change',this.info);
+      },
+      onShow(cell) {
+        this.info = cell;
+        this.info = Object.assign({},this.info);
+        this.state_show = true;
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      formInfo: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.formInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

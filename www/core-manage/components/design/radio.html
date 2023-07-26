@@ -1,0 +1,135 @@
+<textarea>
+  <RadioGroup v-model="value" @on-change="onChange">
+    <Radio v-for="(item,x) of options" v-bind:key="x" :label="item.value">{{item.label}}</Radio>
+  </RadioGroup>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source','state'],
+    data() {
+      return {
+        value: '',
+        options: []
+      }
+    },
+    mounted() {
+      // this.value = this.fieldGroup[this.cell.field] + '';
+      // console.log(this.value + '------------------');
+    },
+    methods: {
+      isReadonly(cell){
+        var readonly = cell.readonly;
+        if('1'==''+readonly){
+          //不为空只读
+          if(1 == this.state){
+            return true;
+          }
+        }
+
+        if('2' == ''+readonly){
+          //不可编辑
+          return true;
+        }
+      },
+      onInit() {
+
+        var content = this.cell.select_options;
+        if (undefined != content && '' != content.trim()) {
+          var rows = content.split('\n');
+          for (var row of rows) {
+            var strs = row.split("|");
+            if (undefined != strs && strs.length == 2) {
+              this.options.push({
+                value: strs[0],
+                label: strs[1]
+              });
+            }
+          }
+          return;
+        }
+        var field_name = this.cell.select_nameField;
+        var field_title = this.cell.select_titleField;
+        console.log(field_name+"  ===   "+field_title);
+        console.log(JSON.stringify(this.cell));
+        if (undefined != this.cell.select_url && '' != this.cell.select_url) {
+          instance_axios({
+            method: 'post',
+            url: this.cell.select_url,
+            data: {
+              select: this.cell.select_sql,
+            }
+          }).then(res => {
+            let root = res.data;
+            this.options = [];
+            if (root.code === 200) {
+              var datas = root.datas;
+              for (var data of datas) {
+                var json = {
+                  value: data[field_name]+'',
+                  label: data[field_title]
+                };
+                this.options.push(json);
+              }
+              console.log(JSON.stringify(this.options) );
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        } else {
+          instance_axios({
+            method: 'post',
+            url: 'api/design/form/select.do',
+            data: {
+              select: this.cell.select_sql,
+            }
+          }).then(res => {
+            let root = res.data;
+            this.options = [];
+            if (root.code === 200) {
+              var datas = root.datas;
+              for (var data of datas) {
+                var json = {
+                  value: data[field_name],
+                  label: data[field_title]
+                };
+                this.options.push(json);
+              }
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        }
+
+      },
+      onChange(json) {
+        this.$emit("change", { 'field': this.cell.name, 'value': this.value });
+        if(undefined != json){
+          this.$emit("echange", { 'field': this.cell.name, 'value': json.label })
+        }
+        
+      }
+    },
+    watch: {
+      cell: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      },
+      source: {
+        handler(new_val) {
+          this.value = new_val+'';
+        },
+        immediate: true
+      }
+    }
+  });
+</script>

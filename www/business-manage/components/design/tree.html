@@ -1,0 +1,152 @@
+<textarea>
+  <Cascader :data="nodes" v-model="values" @on-change="onChange"></Cascader>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source', 'state'],
+    data() {
+      return {
+        values: [],
+        nodes: [],
+        field_name: '',
+        field_title: '',
+        field_id: '',
+        field_pid: '',
+        map:{}
+      }
+    },
+    computed: {
+    },
+    mounted() {
+    },
+    methods: {
+      isReadonly(cell) {
+        var readonly = cell.readonly;
+        if ('1' == '' + readonly) {
+          //不为空只读
+          if (1 == this.state) {
+            return true;
+          }
+        }
+
+        if ('2' == '' + readonly) {
+          //不可编辑
+          return true;
+        }
+      },
+      onInit() {
+
+        this.field_name = this.cell.select_nameField;
+        this.field_title = this.cell.select_titleField;
+        this.field_pid = this.cell.select_pidField;
+        this.field_id = this.cell.select_idField;
+        if (undefined != this.cell.select_url && '' != this.cell.select_url) {
+          instance_axios({
+            method: 'post',
+            url: this.cell.select_url,
+            data: {
+              select: this.cell.select_sql,
+            }
+          }).then(res => {
+            let root = res.data;
+            this.options = [];
+            if (root.code === 200) {
+              var datas = root.datas;
+              this.onFill(datas);
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        } else if (undefined != this.cell.select_sql && '' != this.cell.select_sql) {
+          instance_axios({
+            method: 'post',
+            url: 'api/design/form/select.do',
+            data: {
+              select: this.cell.select_sql,
+            }
+          }).then(res => {
+            let root = res.data;
+            this.options = [];
+            if (root.code === 200) {
+              var datas = root.datas;
+              this.onFill(datas);
+            } else {
+              this.$Message.error(root.message)
+            }
+          }).catch(err => {
+            console.error(err)
+            this.$Message.error('出现错误，请联系管理员！')
+          })
+        } else if (undefined != this.cell.dict && '' != this.cell.dict) {
+          var items = this.$store.state.dicts[this.cell.dict];
+          if (undefined != items) {
+            this.onFill(items);
+          }
+        }
+      },
+      onFill(alls) {
+        var needs = [];
+        for (var x = 0; x < alls.length; x++) {
+          var node = alls[x];
+          var id = node[this.field_id] + '';
+          this.map[id + ''] = node;
+          var pid = node[this.field_pid];
+          if (0 == pid || null == pid) {
+            needs.push({ 'value': node[this.field_name] + '', 'label': node[this.field_title], expand: true, 
+            'children': this.findChilds(id, alls) });
+          }
+        }
+        this.nodes = needs;
+      },
+      findChilds(pid, alls) {
+        var needs = [];
+        for (var x = 0; x < alls.length; x++) {
+          var node = alls[x];
+          if (pid == node[this.field_pid]+'') {
+            needs.push({ 'value': node[this.field_name] + '', 'label': node[this.field_title], expand: true, 'children': this.findChilds(node.id, alls) });
+          }
+        }
+        return needs;
+      },
+      onChange(json,selectedData) {
+        console.log(JSON.stringify(selectedData));
+        this.$emit("change", { 'field': this.cell.name, 'value': JSON.stringify(json)+' ' });
+
+        if(undefined != selectedData && selectedData.length>0){
+          var last = selectedData[selectedData.length-1];
+          this.$emit("change", { 'field': this.cell.titleField, 'value': last['__label'] })
+        }
+
+      },
+      onChange1() {
+        this.$emit("change", { 'field': this.cell.name, 'value': JSON.stringify(this.values) + " " });
+      }
+    },
+    watch: {
+      cell: {
+        handler(new_val, oldName) {
+          if (undefined != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      },
+      source: {
+        handler(new_val) {
+          this.value = new_val;
+          if (undefined != new_val && new_val.indexOf('[') == 0) {
+            this.values = JSON.parse(new_val);
+            this.values = Object.assign([], this.values);
+          } else {
+            this.values = [];
+            this.values = Object.assign([], this.values);
+          }
+        },
+        immediate: true
+      }
+    }
+  });
+</script>

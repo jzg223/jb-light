@@ -1,0 +1,65 @@
+<textarea>
+  <Drawer title="表单维护" :closable="true" v-model="state_show" width="500">
+    <table>
+      <tr>
+        <td>
+            <Upload ref="upload" :show-upload-list="false" :before-upload="handleBeforeUpload" type="drag" style="width:100px;">
+                <Icon type="md-cloud-upload" size="20">导入布局</Icon>
+              </Upload>
+        </td>
+        <td style="padding-left:20px">
+            <!-- <Button type="primary" @click="onSave">保存</Button> -->
+        </td>
+      </tr>
+    </table>
+  </Drawer>
+</textarea>
+<script>
+  Rap.define(['/view/sys/form/detail'], {
+    props: ['fid', 'formInfo', 'ope'],
+    data: function () {
+      return {
+        state_show: false,
+      }
+    },
+    created: function () {
+
+    },
+    mounted() {
+    },
+    methods: {
+      handleBeforeUpload(file) {
+
+        let param = new FormData(); //创建form对象
+        param.append('upload', file, file.name);//通过append向form对象添加数据
+        console.log(param.get('upload')); //FormData私有类对象，访问不到，可以通过get判断值是否传进去
+        let config = {
+          headers: { 'Content-Type': 'multipart/form-data' } //这里是重点，需要和后台沟通好请求头，Content-Type不一定是这个值
+        };
+
+        instance_axios.post(base_server + 'grid/upload.do', param, config).then(res => {
+          var root = res.data;
+          if (200 == root.code) {
+            this.$Message.success('上传成功');
+            var json = root.grid;
+            if (undefined != json && '' != json) {
+              this.$emit("data-change",json);
+            }
+          } else {
+            this.$Message.error('上传失败:' + root.message);
+          }
+          console.log(res)
+        }, err => {
+          this.$Message.error('上传失败:' + err);
+        }, () => {
+        });
+        return false;
+      },
+      onShow() {
+        this.state_show = true;
+      },
+    },
+    init: function (query, search) {
+    },
+  })
+</script>

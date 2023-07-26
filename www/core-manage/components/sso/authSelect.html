@@ -1,0 +1,82 @@
+<textarea>
+    <!-- 界面资源树组件，供授权组件调用 -->
+    <Collapse v-model="value1">
+        <Panel v-for="(group) of groups" :name="group.groups" v-bind:key="group.groups">
+            {{group.groups}}
+            <p slot="content">
+                <template  v-for="(item,x) of auths" :key="item.code" >
+                    <span  v-if="item.groups==group.groups" :key="item.code" >
+                        <Divider v-if="0!=x" type="vertical" />&nbsp;&nbsp;<Checkbox v-model="map[item.code]">{{item.mean}}</Checkbox>
+                    </span>
+                </template>
+                
+            </p>
+        </Panel>
+    </Collapse>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['value','app'],
+        data() {
+            return {
+                value1: '系统管理',
+                groups:[],
+                auths:[],
+                map: {} //
+            }
+        },
+        methods: {
+            onChange(nodes) {
+                console.info(JSON.stringify(nodes));
+            },
+            onTake() {
+                //提取所选节点,供授权组件调用
+                var ids = [];
+                for (var key in this.map) {
+                    if (true == this.map[key]) {
+                        ids.push({ res_id: key, type: 'auth' });
+                    }
+                }
+                return ids;
+            },
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/auth/all.do',
+                    data: {
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        this.groups = root.groups;
+                        this.auths = root.datas;
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+        },
+        watch: {
+            'value': function (val_new) {
+                console.log('-----------------');
+                console.log(JSON.stringify(val_new));
+                this.map = {};
+                if (undefined != val_new) {
+                    for (var i in val_new) {
+                        var node = val_new[i];
+                        this.map[node.resource] = true;
+                    }
+                }
+                this.map = Object.assign({}, this.map);
+                console.log(JSON.stringify(this.map));
+                this.onRefersh();
+            }
+        },
+        created() {
+        },
+        init: function () {
+        }
+    })
+
+</script>

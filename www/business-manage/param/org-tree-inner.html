@@ -1,0 +1,75 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Tree :data="nodes" @on-select-change="onSelect"></Tree>
+</textarea>
+<script>
+    Rap.define([], {
+        data() {
+            return {
+                nodes: [],
+                alls: []
+            }
+        },
+        methods: {
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: '../api/sys/org/all.do',
+                    data: {
+                        info: this.info,
+                        rid: this.rid
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        var alls = data.datas
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            if (0 === node.pid || null === node.pid) {
+                                needs.push({id:node.id, 'key': node.id + '', 'title': node.name+"  ["+node.childNum+"]", expand: true, 'children': this.findChilds(node.id, alls) });
+                            }
+                        }
+                        this.nodes = needs;
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        node.key = node.id+'';
+                        node.title = node.name+''+"  ["+node.childNum+"]";
+                        node.expand = true;
+                        node.children = this.findChilds(node.id, alls);
+                        needs.push(node);
+                        // needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(nodearray, node) {
+                if (nodearray.length > 0) {
+                    this.$emit("org-change", nodearray[0]);
+                } else {
+                    this.$emit("org-change", {});
+                }
+
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        init: function () {
+        }
+    })
+
+</script>

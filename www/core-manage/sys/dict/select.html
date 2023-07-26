@@ -1,0 +1,129 @@
+<textarea>
+    <div>
+        <components_list :config="config" :params="params">
+            <template slot="action" slot-scope="{ item, index }">
+                <li>
+                  <a href="javascript:void(0)" @click="$refs.info.onShow(item.id)">修改</a> | <a href="javascript:void(0)"
+                    @click="onSelect(item)">项维护</a>
+                </li>
+              </template>
+        </components_list>
+        <!-- <table>
+            <tr>
+                <td><Select clearable transfer="true" filterable v-model="group_select" @on-change="onGroupSelect">
+                        <Option v-for="data in groups" :value="data.id" v-bind:key="data.id">{{data.name }}</Option>
+                    </Select></td>
+                <td style="padding-left:5px">
+                    <a href="javascript:void(0)" @click="$refs.info.onAdd(group_select)">添加字典</a>
+                    <a href="javascript:void(0)" @click="$refs.info.onAdd(group_select)">修改分钟</a>
+                </td>
+            </tr>
+        </table> -->
+        <!-- <List>
+            <ListItem v-for="item of dicts">
+                <ListItemMeta :title="item.name" :description="item.description" />
+                <template slot="action">
+                    <li>
+                        <a href="javascript:void(0)" @click="$refs.info.onShow(item.id)">修改</a> | <a
+                            href="javascript:void(0)" @click="onSelect(item)">项维护</a>
+                    </li>
+                </template>
+            </ListItem>
+        </List> -->
+        <sys_dict_info @data-change="onDictRefersh" ref="info"></sys_dict_info>
+    </div>
+</textarea>
+<script>
+    Rap.define(['info','/components/list'], {
+        data() {
+            return {
+                groups: [],
+                group_select: 0,
+                dicts: [],
+                state_load: false,
+                config:{
+                    url:'api/sys/dict-info/list.do',
+                    size:5,
+                    'titleField':'name',
+                    'desField':'description'
+                },
+                params:{}
+            }
+        },
+        methods: {
+            onSelect(item) {
+                console.log('---onSelect');
+                console.log(item);
+                this.$emit('dict-select', item);
+            },
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/dict-group/tree.do',
+                    data: {
+                        info: this.info,
+                        rid: this.rid
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        var alls = data.datas;
+                        this.groups = data.datas;
+                        if (undefined != alls) {
+                            this.group_select = alls[0].id;
+                            this.onGroupSelect();
+                        }
+                        this.state_load = true;
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            onDictRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/dict-info/all.do',
+                    data: {
+                        gid: this.group_select
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var alls = root.datas;
+                        this.dicts = root.datas;
+
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.parent_id) {
+                        needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onGroupSelect(values, nodes) {
+                // if (values.length > 0) {
+                //     this.selected_group = values[0];
+                //     this.onDictRefersh();
+                // } else {
+                // }
+                this.onDictRefersh();
+            }
+        },
+        created() {
+            // this.onRefersh();
+        },
+        init: function () {
+        }
+    })
+
+</script>

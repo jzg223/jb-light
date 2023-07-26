@@ -1,0 +1,213 @@
+<textarea>
+  <div class="demo-split">
+    <div slot="top" class="demo-split-pane">
+      <Button icon="ios-add" type="primary" @click="$refs.fill.onShow()">解析</Button>
+      <Button icon="ios-add" type="primary" @click="onAddRow()">添加行</Button>
+      <Button type="primary" @click="onSave">保存</Button>
+    </div>
+    <hr>
+    <div style="padding:5px">
+      <template v-for="(row,rowIndex) of rows">
+        <Row v-bind:key="rowIndex">
+          <Col span="24" style="border-bottom:1px solid #ccc;margin-bottom:10px;">
+          <span :draggable="true" :dropable="true" v-for="(cell,cellIndex) in row" :key="cellIndex"
+            @dragover="allowDrop($event)" @dragstart="onDrag($event,rowIndex,cellIndex)"
+            @drop="onDrop($event,rowIndex,cellIndex)">
+            <Tag type="dot" :color="name_checked==(rowIndex+'-'+cellIndex)?'error':'primary'" checkable
+              @on-change="onSelect" :name="rowIndex+'-'+cellIndex" closable @on-close="onClose(rowIndex,cellIndex)">
+              {{ cell.title }}</Tag>
+          </span>
+          <Button icon="ios-add" type="dashed" size="small" @click="onAdd(rowIndex)"></Button>
+          <Button icon="ios-remove" type="dashed" size="small" @click="onRemoveRow(rowIndex)"></Button>
+          <Button icon="ios-arrow-round-up" type="dashed" size="small" @click="onUp(rowIndex)"></Button>
+          <Button icon="ios-arrow-round-down" type="dashed" size="small" @click="onDown(rowIndex)"></Button>
+          </Col>
+        </Row>
+      </template>
+    </div>
+    <view_sys_form_fill ref="fill" @data-change="onFill"></view_sys_form_fill>
+    <view_sys_grid_cell ref="cell" @data-change="onCellChange"></view_sys_grid_cell>
+  </div>
+</textarea>
+<script>
+  Rap.define(['fill', '/view/sys/grid/cell'], {
+    props: ['fid', 'formInfo', 'ope'],
+    data: function () {
+      return {
+        rows: [],
+        name_checked: '',
+        drag_rowIndex: 0,
+        drag_cellIndex: 0
+      }
+    },
+    created: function () {
+      // this.onInit();
+      if (0 == this.rows.length) {
+        this.rows.push([]);
+      }
+    },
+    mounted() {
+    },
+    methods: {
+      onCellChange(json) {
+        if (undefined != json) {
+          var strs = this.name_checked.split('-');
+          var rowIndex = parseInt(strs[0]);
+          var cellIndex = parseInt(strs[1]);
+          this.rows[rowIndex][cellIndex] = Object.assign({}, json);
+          this.rows = Object.assign([], this.rows);
+        }
+      },
+      onFill(datas) {
+        if (undefined == datas || 0 == datas.length) {
+          return;
+        }
+        for (var arr of datas) {
+          this.rows.push([{
+            title: arr[arr.length - 1],
+            name: arr[0]
+          }])
+        }
+        this.rows = Object.assign([], this.rows);
+      },
+      onDrag(e, rowIndex, cellIndex) {
+        this.drag_rowIndex = rowIndex;
+        this.drag_cellIndex = cellIndex;
+        console.log(this.drag_rowIndex + ' ---- ' + this.drag_cellIndex + '  ---开始拖动');
+      },
+      onDrop(e, rowIndex, cellIndex) {
+        console.log(rowIndex + ' -  ' + cellIndex);
+        console.log(this.drag_rowIndex + ' ---- ' + this.drag_cellIndex);
+
+        var temp = this.rows[this.drag_rowIndex][this.drag_cellIndex];
+        this.rows[this.drag_rowIndex][this.drag_cellIndex] = this.rows[rowIndex][cellIndex];
+        this.rows[rowIndex][cellIndex] = temp;
+        this.rows = Object.assign([], this.rows);
+        // return;
+        // this.drag_end = index;
+        // if (-1 != this.drag_start && -1 != this.drag_start) {
+        //   var temp = this.needs[this.drag_start];
+        //   this.needs[this.drag_start] = this.needs[this.drag_end];
+        //   this.needs[this.drag_end] = temp;
+        // }
+        // this.needs = Object.assign([], this.needs);
+        // const dragIndex = e.dataTransfer.getData("index");
+        // this.$parent.$parent.dragAndDrop(dragIndex,index);
+        e.preventDefault();
+      },
+      allowDrop(e) {
+        e.preventDefault();
+      },
+      onUp(index) {
+        if (0 == index) {
+          return;
+        }
+        var temp = this.rows[index - 1];
+        this.rows[index - 1] = this.rows[index];
+        this.rows[index] = temp;
+        this.rows = Object.assign([], this.rows);
+      },
+      onDown(index) {
+        if (this.rows.length - 1 == index) {
+          return;
+        }
+        var temp = this.rows[index + 1];
+        this.rows[index + 1] = this.rows[index];
+        this.rows[index] = temp;
+        this.rows = Object.assign([], this.rows);
+      },
+      onSelect(checked, name) {
+        this.name_checked = name;
+        var strs = name.split('-');
+        var rowIndex = parseInt(strs[0]);
+        var cellIndex = parseInt(strs[1]);
+
+        var info = Object.assign({}, this.rows[rowIndex][cellIndex]);
+        if (undefined == info.readonly) {
+          info.readonly = 0;
+        }
+        if (undefined != this.$refs.cell) {
+          this.$refs.cell.onShow(info);
+        }
+      },
+      onClose(rowIndex, cellIndex) {
+        this.rows[rowIndex].splice(cellIndex, 1);
+      },
+      onAdd(rowIndex) {
+        var cells = this.rows[rowIndex];
+        var key = rowIndex + '-' + cells.length;
+        cells.push({ 'title': '字段' + cells.length });
+        this.onSelect(false, key);
+      },
+      onRemoveRow(rowIndex) {
+        this.rows.splice(rowIndex, 1);
+      },
+      onAddRow() {
+        this.rows.push([]);
+      },
+      onSave(name) {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/form/update.do',
+          data: {
+            info: {
+              content: JSON.stringify(this.rows) + ' '
+            },
+            id: this.fid,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+
+      },
+      onInit() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      formInfo: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            // this.info = Object.assign({}, int2str(this.formInfo));
+            var content = this.formInfo.content;
+            if (undefined != content && '' != content) {
+              this.rows = JSON.parse(content);
+              this.name_checked = '0-0';
+              this.onSelect(true, this.name_checked);
+            }
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+
+
+  .demo-split {
+    /* min-height: 500px; */
+    height: auto;
+    border: 1px solid #dcdee2;
+  }
+
+  .demo-split-pane {
+    padding: 10px;
+  }
+
+  .demo-split-pane.no-padding {
+    height: 500px;
+    padding: 0;
+  }
+</style>

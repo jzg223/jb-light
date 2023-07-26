@@ -1,0 +1,84 @@
+<textarea>
+    <div class="cd-layout-aside">
+      <div class="cd-layout-aside_bread"></div>
+      <div class="cd-layout-adside_content">
+        <div class="page-header clearfix pvm">
+          <h1 class="pull-left">
+              表单【{{info.name}}】管理
+          </h1>
+          <div class="pull-right">
+              <Button size="small" @click="history.go(-1)">返回</Button>
+          </div>
+      </div>
+      <Tabs type="card" @on-click="onTypeChange" v-model="type_current">
+        <TabPane v-for="item of types" :name="item.name" :key="item.name" :label="item.title"></TabPane>
+      </Tabs>
+      <component v-bind:is="url_current" @data-change="onRefersh"
+        :fid="id" :formInfo="info"></component>
+      </div>
+    </div>
+  </textarea>
+<script>
+  Rap.define(['basic','design','demo'], {
+    mixins: [mixin_common],
+    props: {
+    },
+    data: function () {
+      return {
+        id: 0,
+        info: {},
+        types: [
+          { name: 'basic', title: '基础信息' },
+          { name: 'design', title: '表单设计' },
+          { name: 'demo', title: '代码引用' },
+          // { name: 'manager', title: '主要管理人员' },
+          // { name: 'special', title: '特种作业人员' },
+          // { name: 'underworker', title: '井工' },
+          // { name: 'upworker', title: '露天负责人' },
+        ],
+        type_current: 0,
+        url_current: 'view_sys_grid_basic',
+      }
+    },
+    mounted() {
+    },
+    methods: {
+      onTypeChange() {
+        this.url_current = 'view_sys_grid_' + this.type_current;
+      },
+      onRefersh() {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/grid/show.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.info = root.data;
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+    },
+    init: function (query, search) {
+      var nav = query.nav;
+      if(undefined != nav ){
+        this.type_current = this.types[nav].name;
+        this.onTypeChange();
+      }
+      var id = query.id;
+      if (undefined != id && 0 != id) {
+        this.id = id;
+        this.onRefersh();
+      }
+    },
+    watch: {
+    }
+  })
+</script>

@@ -1,0 +1,350 @@
+<textarea>
+  <skin_two39 v-if="state_load">
+    <template slot="top">
+      <!-- <skin_header :title="'应用【'+app.app_title+'】账号管理'">
+        <template slot="opes">
+          <ol class="breadcrumb p-0 m-0">
+            <li class="breadcrumb-item" v-if="selected_org.name">
+                <a href="javascript:void(0)">{{selected_org.name}}</a>
+            </li>
+            <li class="breadcrumb-item" v-if="selected_region.name">
+              <a href="javascript:void(0)">{{selected_region.name}}</a>
+            </li>
+            <li class="breadcrumb-item"  v-if="selected_role.title">
+              <a href="javascript:void(0)">{{selected_role.title}}</a>
+            </li>
+          </ol>
+        </template>
+      </skin_header> -->
+    </template>
+    <template slot="left">
+      <skin_card title="角色列表">
+        <template slot="opes">
+          <a href="javascript:void(0)" @click="$refs.role.onAdd()">添加</a>
+          <Divider type="vertical" v-if="selected_role.key" />
+          <a href="javascript:void(0)" v-if="selected_role.key" @click="$refs.role.onShow(selected_role.key)">修改</a>
+        </template>
+        <template slot="body">
+          <components_sso_roleTree :app="app.id" ref="roleTree" @select-change="onRoleSelect">
+          </components_sso_roleTree>
+        </template>
+      </skin_card>
+      <skin_card title="机构列表"  style="margin-top:10px;">
+        <template slot="opes">
+          <a href="javascript:void(0)" @click="$refs.org.onAdd()">添加</a>
+          <Divider type="vertical" v-if="selected_org.key" />
+          <a href="javascript:void(0)" v-if="selected_org.key" @click="$refs.org.onShow(selected_org.key)">修改</a>
+        </template>
+        <template slot="body">
+          <sys_org_tree ref="orgTree" @org-change="onOrgSelect" @region-change="onRegionChange">
+          </sys_org_tree>
+        </template>
+      </skin_card>
+      
+    </template>
+    <template slot="right">
+      <skin_card title="账号查询">
+        <template slot="opes">
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">添加</a>
+          <Divider type="vertical" />
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">冻结</a>
+          <Divider type="vertical" />
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">取消添加</a>
+          <Divider type="vertical" />
+          <a href="javascript:void(0)" @click="$refs.user.onAdd()">重置密码</a>
+        </template>
+        <template slot="body">
+          <Form :model="search" inline>
+            <FormItem prop="userID">
+              <Input type="text" v-model="search.userID" placeholder="请输入用户账号" />
+            </FormItem>
+            <FormItem prop="userName">
+              <Input type="text" v-model="search.userName" placeholder="请输入用户姓名" />
+            </FormItem>
+            <FormItem>
+              <Button type="primary" @click="onSearch">搜索</Button>
+            </FormItem>
+          </Form>
+          <Tabs value="name1">
+            <TabPane :label="'已分配  '+total1" name="name1">
+              <components_table v-if="params.region" @total-change="total1=$event" :columns="columns" :search="search" :params="params" :config="config1" ref="table1">
+                <template slot-scope="{ row, index }" slot="action">
+                    <Button type="primary" size="small" style="margin-right: 5px"
+                      @click="$refs.user.onShow(row.id)">修改</Button>
+                    <!-- <Button type="error" size="small" @click="remove(index)">授权</Button> -->
+                  </template>
+                  <template slot="opes">
+                      <Button type="primary" @click="onRemove">从应用中移除</Button>
+                      <components_design_dataselect :mul="true" :width="180" :options="roles" ref="roleselect1"></components_design_dataselect>
+                      <Button type="primary" @click="onReset">重新赋值</Button>
+                  </template>
+              </components_table>
+            </TabPane>
+            <TabPane :label="'未分配  '+total2" name="name2">
+              <components_table v-if="params.region" @total-change="total2=$event" :columns="columns" :search="search" :params="params" :config="config2" ref="table2">
+                <template slot-scope="{ row, index }" slot="action">
+                    <Button type="primary" size="small" style="margin-right: 5px"
+                      @click="$refs.user.onShow(row.id)">修改</Button>
+                    <!-- <Button type="error" size="small" @click="remove(index)">授权</Button> -->
+                  </template>
+                  <template slot="opes">
+                      <components_design_dataselect :mul="true" :width="200" :options="roles" ref="roleselect">
+                      </components_design_dataselect>
+                      <Button type="primary" @click="onAppend">添加到应用中</Button>
+                  </template>
+              </components_table>
+            </TabPane>
+          </Tabs>
+          
+        </template>
+      </skin_card>
+      <components_sso_orgInfo ref="org" :app="app" @data-change="$refs.orgTree.onRefersh()"></components_sso_orgInfo>
+      <components_sso_roleInfo :app="app" ref="role" @data-change="$refs.roleTree.onRefersh()">
+      </components_sso_roleInfo>
+      <sys_user_info ref="user" @data-change="onRefersh"></sys_user_info>
+    </template>
+  </skin_two39>
+</textarea>
+<script>
+  //这里定义组件
+  Rap.define('', ['/sys/org/tree', '/components/sso/roleInfo',
+    '/components/sso/roleTree', '/sys/org/info',
+    '/sys/user/info', '/components/table','/components/design/dataselect'], {
+    data() {
+      return {
+        total1:0,//已分配数量
+        total2:0,//未分配数量
+        roles:[],
+        app: {},
+        id:0,
+        selected_region:{},
+        selected_org: {}, // 所选机构
+        selected_role: {}, // 已选角色
+        search: {
+          userID: null,
+          userName: null
+        },
+        columns: [
+          {
+            type: 'selection',
+            width: 60,
+            align: 'center'
+          },
+          {
+            'title': '登录账号',
+            'key': 'username',
+            width: 160,
+          }, {
+            'title': '姓名',
+            'key': 'title',
+            width: 160,
+          }, {
+            'title': '邮箱',
+            'key': 'email',
+            width: 160,
+          }, {
+            'title': '电话',
+            'key': 'phone',
+            width: 100,
+          }, {
+            'title': '机构名称',
+            'key': 'orgName',
+            width: 200,
+          }, {
+            title: '操作',
+            slot: 'action',
+            width: 250,
+            align: 'center',
+            fixed:'right'
+          }
+        ],
+        config1: {
+          url: 'api/sso/user/list-1.do',
+        },
+        config2: {
+          url: 'api/sso/user/list-2.do',
+        },
+        params: {}, // 
+        state_load:false,
+      }
+    },
+    methods: {
+      onReset(){
+        //重新复制角色
+        var datas = this.$refs.table1.datas_selected;
+        var uids = [];
+        for(var row of datas){
+          uids.push(row.id)
+        }
+
+        var roles = this.$refs.roleselect1.values;
+        instance_axios({
+          method: 'post',
+          url: 'api/sso/user/reset.do',
+          data: {
+            app: this.id,
+            uids:uids,
+            roles:roles,
+            useTrans:1
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('操作成功');
+            this.$refs.table1.onRefersh();
+            this.$refs.table2.onRefersh();
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onRemove(){
+        var datas = this.$refs.table1.datas_selected;
+        var uids = [];
+        for(var row of datas){
+          uids.push(row.id)
+        }
+        instance_axios({
+          method: 'post',
+          url: 'api/sso/user/remove.do',
+          data: {
+            app: this.id,
+            uids:uids
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('操作成功');
+            this.$refs.table1.onRefersh();
+            this.$refs.table2.onRefersh();
+          } else {
+            this.$Message.error(data.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onAppend(){
+        var datas = this.$refs.table2.datas_selected;
+        var uids = [];
+        for(var row of datas){
+          uids.push(row.id)
+        }
+
+        var roles = this.$refs.roleselect.values;
+        instance_axios({
+          method: 'post',
+          url: 'api/sso/user/append.do',
+          data: {
+            app: this.id,
+            uids:uids,
+            roles:roles,
+            useTrans:1
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('操作成功');
+            this.$refs.table1.onRefersh();
+            this.$refs.table2.onRefersh();
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onOrgSelect(event) {
+        this.selected_org = Object.assign({}, event);
+        this.params.orgId = event.id;
+        this.params = Object.assign({},this.params);
+      },
+      onRegionChange(event) {
+        this.selected_region = event;
+        if (undefined != event.code) {
+          this.params.region = event.code;
+        } else {
+          this.params.region = this.$store.state.user.properties.region
+        }
+        this.params = Object.assign({},this.params);
+      },
+      onOrgChange(event){
+        this.selected_org = event;
+        if (undefined != event.code) {
+          this.params.id_org = event.code;
+        } else {
+          this.params.id_org = 0;
+        }
+        this.params = Object.assign({},this.params);
+      },
+      onRoleSelect(event) {
+        this.selected_role = Object.assign({}, event);
+        this.params.id_role = event.key;
+        this.params = Object.assign({},this.params);
+      },
+      onRefersh() {
+        if (undefined != this.$refs.table) {
+          this.$refs.table.onRefersh();
+        }
+      },
+      onSearch() {
+        this.search = Object.assign({},this.search);
+        // if (undefined != this.$refs.table) {
+        //   this.$refs.table1.onSearch();
+        //   this.$refs.table2.onSearch();
+        // }
+      },
+      onInit() {
+        this.state_load = false;
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/application/show.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.state_load = true;
+            this.app = root.data;
+            this.roles = [];
+            var datas = root.roles;
+            if(undefined!=datas){
+              for(var row of datas){
+                this.roles.push({label:row.description,value:row.id});
+              }
+              this.roles = Object.assign([],this.roles);
+            }
+            this.onRefersh();
+          } else {
+            this.$Message.error(data.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      }
+    },
+    created() {
+      
+    },
+    init: function (query) {
+      var id = query.id;
+      if (undefined == id) {
+        this.$Message.error("未选择应用");
+      } else {
+        this.id = id;
+        this.params.app = id;
+        this.params.region = this.$store.state.user.properties.region;
+        this.params = Object.assign({},this.params);
+        this.onInit();
+      }
+      // this.$root.fillTab('账号管理', this.router.hash);
+    }
+  })
+</script>

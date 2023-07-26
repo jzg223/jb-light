@@ -1,0 +1,112 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">基础设置</div>
+    <div class="panel-body">
+      <components_design_form v-if="info.id" ref="form" name="train-basic" 
+        :rules="rules" :source="info">
+        <FormItem slot="submit">
+          <Button type="primary"  v-if="'view'!==auth"  @click="doSubmit('info')">提交</Button>
+        </FormItem>
+      </components_design_form>
+
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/design/form'], {
+    props: ['id', 'classInfo', 'auth'],
+    data: function () {
+      return {
+        info: {},
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          year: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          startDate: [
+            { required: true, message: '请选择开始日期', trigger: 'change' }
+          ],
+          endDate: [
+            { required: true, message: '请选择结束日期', trigger: 'change' }
+          ],
+          signDate: [
+            { required: true, message: '请选择报名截止日期', trigger: 'change' }
+          ],
+          baseId: [
+            { required: true, message: '请选择基地', trigger: 'blur' }
+          ],
+          // type: [
+          //   { required: true, message: '请选择类别', trigger: 'blur' }
+          // ],
+          // level: [
+          //   { required: true, message: '请选择层级', trigger: 'blur' }
+          // ],
+        },
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    mounted() {
+    },
+    methods: {
+      async doSubmit(name) {
+        var json = await this.$refs.form.take();
+        if (false === json) {
+          return;
+        }
+        if(json.startDate > json.endDate) {
+          this.$Message.error('开始日期不能大于结束日期');
+          return;
+        }
+        if(json.startDate > json.signDate) {
+          this.$Message.error('开始日期不能大于报名截止日期');
+          return;
+        }
+        if(json.endDate < json.signDate) {
+          this.$Message.error('结束日期不能大于报名截止日期');
+          return;
+        }
+        console.log(json);
+          instance_axios({
+            method: 'post',
+            url: 'api/manage/train-class/set-basic.do',
+            data: {
+              info: json,
+              id: this.id
+            }
+          }).then(res => {
+            let root = res.data
+            if (root.code === 200) {
+              this.$Message.success('成功设置');
+              this.$emit('data-change', {});
+              // this.getRoleListDataHandle()
+            } else {
+              this.$Message.error(root.message)
+            }
+          })
+      },
+      onInit() {
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.classInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

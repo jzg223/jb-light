@@ -1,0 +1,115 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Tree :data="nodes" @on-select-change="onSelect"  :load-data="loadData"></Tree>
+</textarea>
+<script>
+    Rap.define([], {
+        data() {
+            return {
+                nodes: [],
+                alls: []
+            }
+        },
+        methods: {
+            loadData(node_cu, callback) {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/region/takeChilds.do',
+                    data: {
+                        id: node_cu.key
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        var datas = root.childs;
+                        if (undefined == datas || 0 == datas.length) {
+                            callback([]);
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < datas.length; x++) {
+                            var node = datas[x];
+                            needs.push({ 'key': node.id + '', code: node.code, 'title': node.name, expand: true, loading: false, children: [] });
+                        }
+                        callback(needs);
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    console.log(err);
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onRefersh() {
+                var user = JSON.parse(window.localStorage.getItem("train_user"));
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/region/show-code.do',
+                    data: {
+                        code: this.$store.state.user.properties.region
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        var data = root.data;
+                        var node = Object.assign({}, data);
+                        node.key = data.id + '';
+                        node.title = data.name;
+                        node.selected = true;
+                        node.expand = true;
+
+                        var needs = [];
+                        var childs = root.childs;
+                        if (undefined != childs || 0 == childs.length) {
+                            for (var item of childs) {
+                                var need = Object.assign({}, item);
+                                need.key = item.id + '';
+                                need.title = item.name;
+                                need.loading = false;
+                                need.children = [];
+                                // needs.push({
+                                //     'key': item.id + '', code: item.code, 'title': item.name,
+                                //     loading: false, children: []
+                                // });
+                                needs.push(need);
+                            }
+                        }
+                        node.children = needs;
+                        this.nodes = [node];
+                        console.info(JSON.stringify(needs));
+                        this.$emit("select-change", node);
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    console.log(err);
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        needs.push({ 'key': node.id + '', code: node.code, 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(values, nodes) {
+                console.log(values);
+                if (values.length > 0) {
+                    this.$emit("select-change", values[0]);
+                } else {
+                    this.$emit("select-change", {});
+                }
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        init: function () {
+        }
+    })
+
+</script>

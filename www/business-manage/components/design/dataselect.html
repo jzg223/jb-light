@@ -1,0 +1,56 @@
+<!-- 数据选择框 -->
+<textarea>
+  <span>
+    <Select v-if="true===mul" multiple clearable  filterable v-model="values" label-in-value 
+      :style="{width:width+'px'}"
+      @on-change="onChange1" transfer="true">
+      <Option v-for="(item,x) in options" :value="item.value" v-bind:key="x">{{ item.label }}</Option>
+    </Select>
+    <Select v-else clearable  filterable v-model="value" label-in-value  :style="{width:width+'px'}"
+      @on-change="onChange" transfer="true">
+      <Option v-for="(item,x) in options" :value="item.value" v-bind:key="x">{{ item.label }}</Option>
+    </Select>
+  </span>
+  
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['source', 'options','width','mul'],
+    data() {
+      return {
+        value: '',
+        values:[]
+      }
+    },
+    computed: {
+    },
+    mounted() {
+    },
+    methods: {
+      onChange(json) {
+        if (undefined == this.value) {
+          this.value = '';
+        }
+        this.$emit("data-change", json);
+      },
+      onChange1() {
+        this.$emit("change", this.values);
+      }
+    },
+    watch: {
+      source: {
+        handler(new_val) {
+          this.value = new_val;
+          if (undefined != new_val && new_val.indexOf('[') == 0) {
+            this.values = JSON.parse(new_val);
+            this.values = Object.assign([], this.values);
+          } else {
+            this.values = [];
+            this.values = Object.assign([], this.values);
+          }
+        },
+        immediate: true
+      }
+    }
+  });
+</script>

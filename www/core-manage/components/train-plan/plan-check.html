@@ -1,0 +1,35 @@
+<textarea>
+    <div>233</div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['id', 'planInfo', 'auth'],
+    data: function () {
+      return {
+
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.planInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+
+</style>

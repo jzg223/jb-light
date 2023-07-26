@@ -1,0 +1,184 @@
+<textarea>
+  <Modal v-model="state_show" title="开班注册" width="800">
+    <Form ref="info" :model="info" :rules="rules" :label-width="180" >
+      <FormItem label="名称" prop="name">
+        <Input type="text" v-model="info.name" placeholder="" />
+      </FormItem>
+      <FormItem label="实施年度" prop="year">
+        <Input type="text" v-model="info.year" placeholder="" />
+      </FormItem>
+      <Row>
+        <Col span="8">
+          <FormItem label="开始日期" prop="startDate">
+            <DatePicker @on-change="onStartDateChange" 
+             type="date" placeholder=""></DatePicker>
+          </FormItem>
+        </Col>
+        <Col span="8">
+          <FormItem label="结束日期" prop="endDate">
+            <DatePicker @on-change="onEndDateChange" 
+             type="date"  placeholder=""></DatePicker>
+          </FormItem>
+        </Col>
+        <Col span="8">
+          <FormItem label="报名截止日期" prop="signDate">
+            <DatePicker @on-change="onSignDateChange" 
+             type="date" placeholder=""></DatePicker>
+          </FormItem>
+        </Col>
+      </Row>
+      <FormItem label="基地" prop="baseId">
+        <Select v-model="info.baseId" clearable  >
+          <Option v-for="item in bases" :value="item.id+''" :key="item.id">{{ item.name }}</Option>
+        </Select>
+      </FormItem>
+      <FormItem label="主题" prop="about">
+        <Input type="text" v-model="info.about" placeholder="" />
+      </FormItem>
+      <Row>
+        <Col span="12">
+          <FormItem label="类别" prop="type">
+            <Select v-model="info.type" clearable  >
+              <Option v-for="item in types" :value="item.dd_code" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+        <Col span="12">
+          <FormItem label="层级" prop="level">
+            <Select v-model="info.level"  clearable >
+              <Option v-for="item in levels" :value="item.dd_code+''" :key="item.id">{{ item.dd_name }}</Option>
+            </Select>
+          </FormItem>
+        </Col>
+      </Row>
+    </Form>
+    <div slot="footer">
+      <Button type="primary" @click="doSubmit('info')">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+  Rap.define(['/components/edit', '/components/img-upload'], {
+    data: function () {
+      return {
+        state_show: false,
+        bases: [],
+        types: [],
+        levels: [],
+        info: {
+        },
+        rules: {
+          name: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          year: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          startDate: [
+            { required: true, message: '请选择开始日期', trigger: 'blur' }
+          ],
+          endDate: [
+            { required: true, message: '请选择结束日期', trigger: 'blur' }
+          ],
+          signDate: [
+            { required: true, message: '请选择报名截止日期', trigger: 'blur' }
+          ],
+          baseId: [
+            { required: true, message: '请选择基地', trigger: 'blur' }
+          ],
+          type: [
+            { required: true, message: '请选择类别', trigger: 'blur' }
+          ],
+          level: [
+            { required: true, message: '请选择层级', trigger: 'blur' }
+          ],
+        },
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    mounted() {
+    },
+    methods: {
+      onStartDateChange(date, type) {
+        this.info.startDate = new Date(date).getTime() / 1000 + '';
+      },
+
+      onEndDateChange(date, type) {
+        this.info.endDate = new Date(date).getTime() / 1000 + '';
+      },
+
+      onSignDateChange(date, type) {
+        this.info.signDate = new Date(date).getTime() / 1000 + '';
+      },
+
+      doSubmit(name) {
+        this.$refs[name].validate((valid) => {
+          if (valid) {
+            var user = takeUser(); //
+            var info = Object.assign({}, this.info);
+            delete info._index;
+            delete info._rowKey;
+            delete info.id;
+            console.log(info);
+            info.regionCode = user.properties.region; //
+            return; // 此页面创建功能是否保留？
+            instance_axios({
+              method: 'post',
+              url: 'api/manage/train-class/create.do',
+              data: {
+                info: info,
+                uid: this.$store.state.uid,
+              }
+            }).then(res => {
+              let root = res.data
+              if (root.code === 200) {
+                this.$Message.success('成功创建');
+                this.$root.$emit('class-change', {});
+                setTimeout(() => {
+                  this.state_show = false;
+                }, 1000);
+              } else {
+                this.$Message.error(root.message)
+              }
+            })
+          } else {
+            this.$Message.warning('部分项为空');
+          }
+        });
+      },
+
+      onShow(item) {
+        this.state_show = true;
+        if (undefined != item) {
+          this.info = Object.assign({}, item);
+          this.id = item.id;
+        } else {
+          this.info = Object.assign({}, {});
+          this.id = 0;
+        }
+      },
+
+      onInit() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/show-params.do',
+          data: {
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.types = root.types;
+            this.bases = root.bases;
+            this.levels = root.levels;
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+    },
+    init: function (query, search) {
+    }
+  })
+</script>

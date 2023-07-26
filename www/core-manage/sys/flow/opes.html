@@ -1,0 +1,135 @@
+<textarea>
+  <div style="background-color: #ffffff">
+    <!-- <ButtonGroup>
+      <Button v-for="(item,x) of opes" v-bind:key="x" @click="onEdit(x,item)">【{{item.key}}】{{item.title}}</Button>
+    </ButtonGroup> -->
+
+    <Tag type="dot" :color="name_checked==x?'error':'primary'" checkable @on-change="onEdit(x,item)"
+      v-for="(item,x) of opes" v-bind:key="x" :name="x" 
+      closable >
+      【{{item.key}}】{{item.title}}</Tag>
+
+    &nbsp;&nbsp;&nbsp;
+    <!-- <Button type="primary" @click="onAdd">添加</Button>
+    <Button type="primary" @click="doSubmit">保存</Button> -->
+
+    <Button icon="ios-add" type="button"  @click="onAdd"></Button>
+    <Button icon="ios-checkmark" type="button" @click="doSubmit"></Button>
+
+
+    <Modal
+        v-model="state_show" width="700"
+        title="操作编辑"
+        @on-cancel="state_show=false">
+        <Row>
+          <Col span="24"><input type="text" v-model="info.url" class="form-control" placeholder="请输入url"></Col>
+        </Row>
+        <Row>
+          <Col span="8"><input type="text" v-model="info.title" class="form-control" placeholder="请输入标题"></Col>
+          <Col span="8"><input type="number" v-model="info.index" class="form-control" placeholder="请输入序号"></Col>
+          <Col span="8"><input type="text" v-model="info.key" class="form-control" placeholder="请输入key"></Col>
+        </Row>
+        <div class="form-horizontal well well-sm ">
+          <div class="form-group">
+            <input type="text" v-model="info.roles" class="form-control" placeholder="请输入角色">
+          </div>
+          <div class="form-group">
+            <input type="text" v-model="info.users" class="form-control" placeholder="请输入账号">
+          </div>
+          <div class="form-group">
+            <input type="text" v-model="info.orgs" class="form-control" placeholder="请输入机构">
+          </div>
+        </div>
+
+        <div slot="footer">
+            <Poptip confirm title="确定要删除该操作?" @on-ok="onRemove">
+          <Button type="error" @click="onRemove">删除</Button>
+          </Poptip>
+          <Button type="primary" @click="onOk">保存</Button>
+        </div>
+    </Modal>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['row'],
+    data: function () {
+      return {
+        opes: [],
+        state_show: false,
+        info: {},
+        ope_index: 0,
+        name_checked:''
+      }
+    },
+    created: function () {
+      this.onInit();
+    },
+    mounted() {
+    },
+    methods: {
+      doSubmit() {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/flow/update-step.do',
+          data: {
+            info: { content: JSON.stringify(this.opes) + ' ', },
+            id: this.row.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+
+      },
+      onInit() {
+      },
+      onAdd() {
+        this.opes.push({ name: '', title: '新操作' });
+      },
+      onEdit(x, item) {
+        this.info = Object.assign({}, item);
+        this.ope_index = x;
+        this.state_show = true;
+      },
+      onRemove(){
+        this.state_show = false;
+        this.opes.splice(this.ope_index,1);
+      },
+      onOk() {
+        this.opes[this.ope_index] = Object.assign({}, this.info);
+        this.opes.sort(function (x, y) {
+          return x.index - y.index;
+        })
+        this.state_show = false;
+      }
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      row: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            var content = this.row.content;
+            if (undefined != content && '' != content) {
+              this.opes = JSON.parse(content);
+            } else {
+              this.opes = [];
+            }
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 10px !important;
+  }
+</style>

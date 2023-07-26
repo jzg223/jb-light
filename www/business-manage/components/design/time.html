@@ -1,0 +1,32 @@
+<textarea>
+  <DatePicker type="datetime"  v-model="value" :transfer="true" 
+  @on-change="onChange"></DatePicker>
+  </textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source'],
+    data() {
+      return {
+        value: new Date()
+      };
+    },
+    watch: {
+      source: {
+        handler(new_val) {
+          if (undefined == new_val) {
+            this.value = 0;
+          } else {
+            this.value = new Date(this.source * 1000);
+          }
+        },
+        immediate: true
+      }
+    },
+    methods: {
+      onChange(date) {
+        console.log('date-change' + date);
+        this.$emit("change", { 'field': this.cell.name, 'value': new Date(date).getTime() / 1000 })
+      }
+    }
+  });
+</script>

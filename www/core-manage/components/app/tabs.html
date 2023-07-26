@@ -1,0 +1,62 @@
+<textarea>
+    <Tabs type="card" :draggable="true" v-model="current">
+        <TabPane v-for="(app, index) in apps" 
+            :key="index" :label="app.app_title" :name="app.app_name">
+            {{app.app_desc}}
+        </TabPane>
+    </Tabs>
+</textarea>
+<script>
+
+    Rap.define([], {
+        props: {
+        },
+        data: function () {
+            return {
+                apps: [],
+                current:''
+            }
+        },
+        created: function () {
+            this.onRefersh()
+        },
+        methods: {
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/application/all.do',
+                    data: {
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        this.apps = root.datas;
+                        if(undefined != root.datas && root.datas.length>0){
+                            this.current = root.datas[0].app_name;
+                        }
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            }
+        },
+        init: function (query, search) {
+        },
+        watch: {
+            current: {
+                handler(new_val, oldName) {
+                    for(var item of this.apps){
+                        if(item.app_name == this.current){
+                            this.$emit('app-change',item);
+                            break;
+                        }
+                    }
+                },
+                immediate: true
+            }
+        }
+    })
+</script>

@@ -1,0 +1,130 @@
+<textarea>
+    <table class="table">
+      <tr>
+        <th class="th">计划名称</th>
+        <td class="td">{{planInfo.title}}</td>
+        <th class="th">计划年度</th>
+        <td class="td">{{planInfo.year}}</td>
+      </tr>
+      <tr>
+        <th class="th">计划开始</th>
+        <td class="td">{{planInfo.startDate}}</td>
+        <th class="th">计划结束</th>
+        <td class="td">{{planInfo.endDate}}</td>
+      </tr>
+      <tr>
+        <th class="th">报道时间</th>
+        <td class="td">{{planInfo.signupDate}}</td>
+        <th class="th">报道地址</th>
+        <td class="td">{{planInfo.reportsite}}</td>
+      </tr>
+      <tr>
+        <th class="th">培训已报名人数</th>
+        <td class="td">{{planInfo.signupNum}}</td>
+        <th class="th">已审核通过报名人数</th>
+        <td class="td">{{planInfo.checkedNum}}</td>
+      </tr>
+    </table>
+</textarea>
+<script>
+  Rap.define(['/components/design/form'], {
+    props: ['id', 'planInfo', 'auth'],
+    data: function () {
+      return {
+        types: [],
+        state_show: false,
+        info: {},
+        rules: {
+          title: [
+            { required: true, message: '请输入名称', trigger: 'blur' }
+          ],
+          year: [
+            { required: true, message: '请选择培训年度', trigger: 'blur' }
+          ],
+          beginDate: [
+            { required: true, message: '请选择计划开始日期', trigger: 'blur' }
+          ],
+          endDate: [
+            { required: true, message: '请选择计划结束日期', trigger: 'blur' }
+          ],
+          signupDate: [
+            { required: true, message: '请选择报道时间', trigger: 'blur' }
+          ],
+          baseId: [
+            { required: true, message: '请选择培训机构', trigger: 'blur' }
+          ],
+        },
+        id: 0,
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      async doSubmit() {
+        var json = await this.$refs.form.take();
+        json.startDate = json.beginDate;
+        if (json.beginDate > json.endDate) {
+          console.log('');
+          this.$Message.error('开始时间不能大于结束时间')
+          return
+        }
+        if (false === json) {
+          return;
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-plan/confirm-basic.do',
+          data: {
+            info: json,
+            id: this.id,
+            uid: this.$store.state.user.uid
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功创建');
+            this.$emit('data-change', {});
+            setTimeout(() => {
+              this.state_show = false;
+            }, 1000);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          this.$Message.error("无法保存")
+        });
+
+      },
+      doUpdate(json) {
+
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.info = Object.assign({}, int2str(this.planInfo));
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .ivu-form-item {
+    margin-bottom: 4px;
+  }
+  .table{
+    width: 800px;
+  }
+  .th,.td{
+    border:1px solid #7888fc !important;
+    padding:5px;
+  }
+</style>

@@ -1,0 +1,172 @@
+<!-- 引用外部样式 -->
+<link href="css/projects.css" rel="stylesheet" media="screen" />
+<textarea>
+    <div>
+        <div class="top-bar clearfix">
+            <div class="row gutter">
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
+                    <div class="page-title">
+                        <h3>权限管理</h3>
+                        <p></p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
+                </div>
+            </div>
+        </div>
+        <div>
+            <Card>
+                <Tabs value="name1">
+                    <TabPane label="系统管理" name="name1">
+                        <Table border ref="functionTable" highlight-row :columns="columns" :data="datas" @on-current-change="functionSelectedChange">
+                            <template slot-scope="{ row, index }" slot="action">
+                                <Button type="primary" size="small" style="margin-right: 5px" @click="rowAction(row,'edit')">修改</Button>
+                                <Poptip confirm title="确定删除该行数据?" @on-ok="rowAction(row,'delete')">
+                                    <Button type="error" size="small">删除</Button>
+                                </Poptip>
+                            </template>
+                        </Table>
+                    </TabPane>
+                    <TabPane label="标签二" name="name2">标签二的内容</TabPane>
+                    <TabPane label="标签三" name="name3">标签三的内容</TabPane>
+                </Tabs>
+            </Card>
+        </div>
+    </div>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define(['auth/groupTree'], {
+        data() {
+            return {
+                info_search: {
+                    uf_title: '',
+                    uf_path: ''
+                },
+                datas: [],
+                columns: [
+                    {
+                        'title': '名称',
+                        'key': 'uf_title',
+                        'sortable': true
+                    }, {
+                        'title': '资源',
+                        'key': 'uf_path',
+                        'sortable': true
+                    }, {
+                        'title': '路径',
+                        'key': 'uf_fullpath',
+                        'sortable': true
+                    }, {
+                        'title': '功能模板',
+                        'key': 'uf_templatename',
+                        'sortable': true
+                    }, {
+                        'title': '排序',
+                        'key': 'dd_order',
+                        'sortable': true
+                    }, {
+                        'title': '操作',
+                        'slot': 'action'
+                    }
+                ],
+                functionPage: {
+                    total: 0,
+                    size: 10,
+                    current: 1
+                },
+                selected_module: undefined,//已选中模块
+            }
+        },
+        methods: {
+            rowAction(row, action) {
+                if ('edit' == action) {
+                    this.$refs.function.onShow(row.id);
+                } else {
+                    removeFunctionData(row.id).then(res => {
+                        let root = res.data
+                        if (root.code === 200) {
+                            this.$Message.success('删除成功');
+                            this.onGetDatas();
+                        } else {
+                            this.$Message.error(root.message)
+                        }
+                    }).catch(err => {
+                        this.$Message.error('出现错误，请联系管理员！')
+                    })
+                }
+            },
+            onRefersh() {
+                this.$refs.tree.onRefersh();
+            },
+            onModuleChange(node) {
+                this.selected_module = node;
+                this.onGetDatas();
+            },
+            resetPage() {
+                this.functionPage = {
+                    total: 0,
+                    size: 10,
+                    current: 1
+                }
+            },
+            functionSelectedChange(currentRow) {
+                this.functionSelected = currentRow
+            },
+            selectChangeHandle(data, node) {
+                this.functionTitle = node.title
+                this.moduleSelected = node
+                this.ionGetDatas()
+            },
+            functionSearch() {
+                let formSearch = this.formSearch
+                this.resetPage()
+                this.ionGetDatas(formSearch)
+            },
+            resetSearch() {
+
+                this.formSearch = {
+                    uf_title: '',
+                    uf_path: ''
+                }
+                this.resetPage()
+                this.onGetDatas()
+
+            },
+            onGetDatas() {
+                // if (undefined === this.selected_module || undefined === this.selected_module.key) {
+                //     this.$Message.warning('请选择模块！')
+                //     return
+                // }
+                let functionPage = this.functionPage
+                // getFunctionListData(functionPage.current, functionPage.size, this.selected_module ? (this.selected_module.key) : '0', this.info_search).then(res => {
+                //     let root = res.data
+                //     if (root.code === 200) {
+                //         this.datas = data.rows
+                //         this.functionPage.total = data.total
+                //     } else {
+                //         this.$Message.error(root.message)
+                //     }
+                // }).catch(err => {
+                //     console.error(err)
+                //     this.$Message.error('出现错误，请联系管理员！')
+                // })
+            },
+            pageChange(current) {
+                this.functionPage.current = current
+                this.onGetDatas()
+            },
+            pageSizeChange(pageSize) {
+                this.functionPage.size = pageSize
+                this.ionGetDatas()
+            }
+        },
+        created() {
+            console.info('======')
+            this.onGetDatas();
+        },
+        init: function () {
+            this.onGetDatas();
+        }
+    })
+</script>

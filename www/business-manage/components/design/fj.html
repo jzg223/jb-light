@@ -1,0 +1,147 @@
+<textarea>
+    <div>
+      <div class="ivu-input-wrapper ivu-input-wrapper-default ivu-input-type-text">
+        <Input :value="uploadList.length+'个已上传附件'" readonly>
+          <Upload slot="append"  ref="upload" :show-upload-list="false" :on-success="handleSuccess" :format="['jpg','jpeg','png']"
+          :max-size="2048" :on-format-error="handleFormatError" :on-exceeded-size="handleMaxSize" :before-upload="handleBeforeUpload"
+          multiple type="drag" >
+            <Icon type="md-cloud-upload" size="20"></Icon>
+        </Upload>
+          <Button slot="prepend" icon="ios-image" @click.native="onShowDetails"></Button>
+          <div class="demo-upload-list-cover">
+              <Icon type="ios-download" @click.native="handleView(item.name)"></Icon>
+              <Icon type="ios-trash-outline" @click.native="handleRemove(item)"></Icon>
+            </div>
+      </Input>
+        <!-- <Button  type="text">点击查看</Button> -->
+      </div>
+      <Drawer :title="cell.title+' -附件维护'" :closable="true" v-model="state_show" width="700">
+          <Table :columns="columns" :data="uploadList">
+              <template slot-scope="{ row, index }" slot="action">
+                  <a :href="fj_url+row.path">下载</a>
+                  <Poptip transfer confirm title="确定删除该行数据?" @on-ok="onDelete(index)">
+                  <Button type="error" size="small" @click="">删除</Button>
+                </Poptip>
+              </template>
+          </Table>
+      </Drawer>
+    </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['cell', 'source'],
+    data() {
+      return {
+        imgName: '',
+        visible: false,
+        uploadList: [],
+        key: '',
+        state_show: false,
+        columns: [
+          { key: 'name', title: '文件名' },
+          { key: 'time', title: '上传时间' },
+          { title: '操作', slot: 'action' }
+        ]
+      }
+    },
+    methods: {
+      uuid() {
+        function S4() {
+          return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+        }
+        return (S4() + S4() + S4() + S4() + S4() + S4() + S4() + S4());
+      },
+      handleView(name) {
+        this.imgName = name;
+        this.visible = true;
+      },
+      handleRemove(file) {
+        const fileList = this.$refs.upload.fileList;
+        this.$refs.upload.fileList.splice(fileList.indexOf(file), 1);
+      },
+      handleSuccess(res, file) {
+        file.url = 'https://o5wwk8baw.qnssl.com/7eb99afb9d5f317c912f08b5212fd69a/avatar';
+        file.name = '7eb99afb9d5f317c912f08b5212fd69a';
+      },
+      handleFormatError(file) {
+        this.$Notice.warning({
+          title: 'The file format is incorrect',
+          desc: 'File format of ' + file.name + ' is incorrect, please select jpg or png.'
+        });
+      },
+      handleMaxSize(file) {
+        this.$Notice.warning({
+          title: 'Exceeding file size limit',
+          desc: 'File  ' + file.name + ' is too large, no more than 2M.'
+        });
+      },
+      handleBeforeUpload(file) {
+
+        let param = new FormData(); //创建form对象
+        param.append('upload', file, file.name);//通过append向form对象添加数据
+        console.log(param.get('upload')); //FormData私有类对象，访问不到，可以通过get判断值是否传进去
+        let config = {
+          headers: { 'Content-Type': 'multipart/form-data' } //这里是重点，需要和后台沟通好请求头，Content-Type不一定是这个值
+        };
+
+        instance_axios.post(fj_url + 'upload', param, config).then(res => {
+          var root = res.data;
+          if (200 == root.code) {
+            this.$Message.success('上传成功');
+            this.uploadList.push({
+              path: root.message,
+              name: file.name,
+              time: new Date().getTime()/1000,
+            });
+
+            this.$emit("change", { 'field': this.cell.name, 'value': JSON.stringify(this.uploadList)+' ' })
+          } else {
+            this.$Message.error('上传失败:' + root.message);
+          }
+          console.log(res)
+        }, err => {
+          this.$Message.error('上传失败:' + err);
+        }, () => {
+        });
+        return false;
+
+      },
+      onShowDetails() {
+        this.state_show = true;
+      },
+      onDelete(index) {
+        this.uploadList.splice(index,1);
+        this.uploadList = Object.assign([],this.uploadList);
+      }
+    },
+    mounted() {
+    },
+    watch: {
+      source: {
+        handler(new_val) {
+          console.log(new_val);
+          if(undefined != new_val && ''!=new_val){
+            this.uploadList = JSON.parse(new_val);
+            this.uploadList = Object.assign([],this.uploadList);
+          }else{
+            this.uploadList = [];
+            this.uploadList = Object.assign([],this.uploadList);
+          }
+        },
+        immediate: true
+      }
+    }
+  });
+</script>
+<style>
+  .demo-upload-list {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    line-height: 30px;
+    overflow: hidden;
+    position: relative;
+    margin-right: 4px;
+  }
+</style>

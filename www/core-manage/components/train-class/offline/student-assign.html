@@ -1,0 +1,267 @@
+<textarea>
+  <div class="panel panel-default" role="classroom-manage-base">
+    <div class="panel-heading">线下参训人员名额分配-待分配总数【{{total}}】</div>
+    <div class="panel-body">
+
+      <Input v-if="0==total && classInfo && classInfo.regionCode==user.properties.region" v-model="amount" placeholder="请输入总分配人数" search enter-button="确定" @on-search="onInit" />
+      <table class="table table-hover" v-if="total>0">
+        <tbody>
+          <tr>
+            <th width="75%">地域</th>
+            <th width="25%">分配人数</th>
+          </tr>
+          <tr v-for="item of regions">
+            <td>
+              {{item.name}}
+            </td>
+            <td>
+              <Input v-model="values[item.code]" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+        <table class="table table-hover" v-if="total>0">
+          <tbody>
+            <tr>
+              <th width="75%">单位</th>
+              <th width="25%">分配人数</th>
+            </tr>
+            <tr v-for="item of orgs">
+              <td>
+                {{item.name}}
+              </td>
+              <td>
+                <Input v-model="values[item.id]" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <Row style="padding-top:5px;" v-if="1==status">
+          <Col span="12" style="padding-top:20px">
+          <Button type="primary" @click="onRefersh">刷新</Button>
+          <Poptip v-if="'view'!=ope" transfer="true" confirm title="确定执行分配动作?" @on-ok="onSubmit">
+            <Button type="primary">确定</Button>
+          </Poptip>
+          </Col>
+        </Row>
+        <Alert type="success" v-if="2==status">名额已分配,请等待下级机构完成,或者执行撤销。 <Button type="primary" @click="onCancle">撤销</Button></Alert>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define([], {
+    props: ['id', 'classInfo', 'ope'],
+    mixins: [mixin_trainclass],
+    data: function () {
+      return {
+        orgs: [],
+        regions: [],
+        values: {},
+        total: 0,//待分配名额
+        amount: 0,
+        user: {},
+        status:0,//状态
+      }
+    },
+    created: function () {
+      this.user = takeUser();
+    },
+    mounted() {
+    },
+    methods: {
+      onInit() {
+        var user = takeUser();
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-number/init.do',
+          data: {
+            classId: this.id,
+            info: {
+              value: this.amount,
+              regionCode: user.properties.region
+            }
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('执行分配成功');
+            this.onRefersh();
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onSubmit(name) {
+        var total = 0;
+        var orgs = [];
+        for (var item of this.orgs) {
+          var value = parseInt(this.values[item.id]);
+          if (value > 0) {
+            total += value;
+            orgs.push({
+              regionCode: item.regionCode,
+              orgId: item.id,
+              value: value
+            })
+          }
+        }
+        var regions = [];
+        for (var item of this.regions) {
+          var value = parseInt(this.values[item.code]);
+          if (value > 0) {
+            total += value;
+            regions.push({
+              regionCode: item.code,
+              orgId: 0,
+              value: value
+            })
+          }
+        }
+        if (total > this.total && 0 != this.total) {
+          this.$Modal.warning({
+            title: '分配前检查',
+            content: '人数总和超过【' + this.total + '】,请调整后继续'
+          });
+          return;
+        }
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-number/update.do',
+          data: {
+            classId: this.id,
+            regionCode:this.user.properties.region,
+            regions: regions,
+            orgs:orgs,
+            info: {
+              regionCode:this.user.properties.region,
+              orgs:JSON.stringify(orgs)+" ",
+              regions:JSON.stringify(regions)+" ",
+              status:2,
+              childNum: orgs.length+regions.length
+            }
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('执行分配成功');
+            this.onRefersh();
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onCancle() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-number/cancle.do',
+          data: {
+            classId: this.id,
+            regionCode:this.user.properties.region,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('侧小成功');
+            this.onRefersh();
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      onFinish() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/set-student.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功设置');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onRefersh() {
+        var user = JSON.parse(window.localStorage.getItem("train_user"));
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-number/show-code.do',
+          data: {
+            code: user.properties.region,
+            classId: this.id,
+            orgId: user.deptId
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.orgs = root.orgs;
+            this.regions = root.childs;
+            this.values = Object.assign({}, {});
+            var datas = root.datas;
+            if (undefined != datas) {
+              for (var data of datas) {
+                if (0 == data.orgId && data.regionCode == user.properties.region) {
+                  this.total = data.value;
+                  this.status = data.status;
+                }
+                if (0 == data.orgId) {
+                  this.values[data.regionCode] = data.value;
+                } else {
+                  this.values[data.orgId] = data.value;
+                }
+              }
+            }
+            if (undefined != root.childs) {
+              for (var region of root.childs) {
+                if (undefined == this.values[region.code]) {
+                  this.values[region.code] = 0;
+                }
+              }
+            }
+            if (undefined != root.orgs) {
+              for (var org of root.orgs) {
+                if (undefined == this.values[org.id]) {
+                  this.values[org.id] = 0;
+                }
+              }
+            }
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.log(err);
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+
+          if (0 != new_val) {
+            this.onRefersh();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>

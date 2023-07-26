@@ -1,0 +1,88 @@
+<textarea>
+  <div class="border-bottom-2 py-32pt position-relative z-1">
+    <div class="card card-group-row__card">
+      <div class="card-header d-flex align-items-center">
+        <strong class="flex">表格【{{info.name}}】管理</strong>
+        <div>
+          <Button size="small" @click="history.go(-1)">返回</Button>
+        </div>
+      </div>
+      <div class="progress rounded-0" style="height: 4px;">
+        <div class="progress-bar bg-primary-dodger-blue" role="progressbar" style="width: 40%;" aria-valuenow="40"
+          aria-valuemin="0" aria-valuemax="100"></div>
+      </div>
+      <div class="card-body">
+        <Tabs type="card" @on-click="onTypeChange" v-model="type_current">
+          <TabPane v-for="item of types" :name="item.name" :key="item.name" :label="item.title"></TabPane>
+        </Tabs>
+        <component v-bind:is="url_current" @data-change="onRefersh" :tid="id" :tinfo="info"></component>
+      </div>
+      <div class="card-footer p-8pt">
+      </div>
+    </div>
+  </div>
+</textarea>
+<script>
+  Rap.define(['basic', 'design', 'demo'], {
+    mixins: [mixin_common],
+    props: {
+    },
+    data: function () {
+      return {
+        id: 0,
+        info: {},
+        types: [
+          { name: 'basic', title: '基础信息' },
+          { name: 'design', title: '表格设计' },
+          { name: 'demo', title: '代码' },
+          // { name: 'manager', title: '主要管理人员' },
+          // { name: 'special', title: '特种作业人员' },
+          // { name: 'underworker', title: '井工' },
+          // { name: 'upworker', title: '露天负责人' },
+        ],
+        type_current: 0,
+        url_current: 'design_table_basic',
+      }
+    },
+    mounted() {
+    },
+    methods: {
+      onTypeChange() {
+        this.url_current = 'design_table_' + this.type_current;
+      },
+      onRefersh() {
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/table/show.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.info = root.data;
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          console.error(err)
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+    },
+    init: function (query, search) {
+      var nav = query.nav;
+      if (undefined != nav) {
+        this.type_current = this.types[nav].name;
+        this.onTypeChange();
+      }
+      var id = query.id;
+      if (undefined != id && 0 != id) {
+        this.id = id;
+        this.onRefersh();
+      }
+    },
+    watch: {
+    }
+  })
+</script>

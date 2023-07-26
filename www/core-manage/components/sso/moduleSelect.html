@@ -1,0 +1,100 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Cascader v-if="state_load" :data="nodes" :value="values" @on-change="onSelect" change-on-select></Cascader>
+</textarea>
+<script>
+    Rap.define([], {
+        props: [
+            'value'//原始值
+            , 'app'
+        ],
+        data() {
+            return {
+                nodes: [],
+                alls: [],
+                values: [],
+                state_load: false,
+                map: {}
+            }
+        },
+        methods: {
+            onGetData() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sso/module/all.do',
+                    data: {
+                        info: this.info,
+                        app: this.app.id
+                    }
+                }).then(res => {
+                    let root = res.data;
+                    if (root.code === 200) {
+                        var alls = root.datas;
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            this.map[node.id + ''] = node;
+                            if (0 == node.pid || null == node.pid) {
+                                needs.push({ 'value': node.id + '', 'label': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                            }
+                        }
+                        this.nodes = needs;
+                        this.onFill(this.value);
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.um_parent) {
+                        needs.push({ 'value': node.id + '', 'label': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(nodes) {
+                if (nodes.length > 0) {
+                    this.$emit("module-change", nodes[nodes.length - 1]);
+                }
+            },
+            onFill(new_val){
+                this.state_load = false;
+
+                var current = new_val + '';
+                var needs = [];
+                while (true) {
+                    var node = this.map[current];
+                    if (undefined == node) {
+                        break;
+                    }
+                    needs.unshift(current);
+                    if (0 == node.pid) {
+                        break;
+                    }
+                    current = node.pid + '';
+                }
+                this.values = needs;
+                this.values = Object.assign([], this.values);
+                this.state_load = true;
+                if(needs.length>0){
+                    this.$emit("module-change", needs[0]);
+                }
+                
+            }
+
+        },
+        created() {
+        },
+        init: function () {
+        },
+        watch: {
+            'value': function (new_val, old_val) {
+                this.onGetData();
+            }
+        }
+    })
+
+</script>

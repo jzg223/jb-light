@@ -1,0 +1,181 @@
+<textarea>
+  <skin_card title="机构列表">
+    <template slot="opes">
+      <a href="javascript:void(0)" @click="$refs.org.onAdd()">添加</a>
+      <a href="javascript:void(0)" @click="onSync">同步</a>
+    </template>
+    <template slot="body">
+      <Table row-key="id" :columns="columns" :data="datas" border @on-selection-change="onSelectionChange">
+        <template slot-scope="{ row, index }" slot="action">
+            <Button type="primary" size="small" style="margin-right: 5px" @click="$refs.org.onShow(row.id)">修改</Button>
+        </template>
+      </Table>
+      <sys_org_info-inner ref="org" @org-change="onInit"></sys_org_info-inner>
+    </template>
+</skin_card>
+</textarea>
+<script>
+  //这里定义组件
+  Rap.define(['org/info-inner'], {
+    data() {
+      return {
+        columns: [
+          {
+            type: 'selection',
+            width: 60,
+            align: 'center'
+          },
+          {
+            'title': '编号',
+            'key': 'id',
+            width: 90,
+          },
+          
+          {
+            'title': '名称',
+            'key': 'name',
+            'tree': true,
+            width: 150,
+          },
+          {
+            'title': '路径',
+            'key': 'orgPath',
+          },
+           
+          {
+            title: '操作',
+            slot: 'action',
+            width: 200,
+            fixed:'right',
+            align: 'center'
+          }
+        ],
+        datas: [
+        ],
+        selectedDatas: [],
+        search: {
+          regionCode: ''
+        },
+        region_current: {},//当前地域
+      }
+    },
+    methods: {
+      onSync(){
+        onSend('api/sys/org/sync.do',{},(root)=>{
+          if(200==root.code){
+            if(null == content){
+              this.$Message.error("未能同步机构数据");
+              return;
+            }
+            var root = JSON.parse(root.content)
+            if('0' == root.code){
+              var datas = root.data.list;
+              this.doSync(datas)
+            }
+          }
+        })
+      },
+      doSync(inputs){
+        onSend('api/sys/org/dosync.do',{inputs:inputs,region: this.region_current.code},(root)=>{
+          if(200==root.code){
+            this.$Message.success("同步成功")
+            this.onInit()
+          }
+        })
+      },
+      onRegionChange(node) {
+        this.region_current = node;
+        this.onInit();
+      },
+      onSelectionChange(rows) {
+        this.selectedDatas = rows;
+      },
+      onAdd() {
+        this.$refs.org.onAdd(this.region_current);
+      },
+      onInit() {
+        this.datas = [];
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/org/all.do',
+          data: {
+          }
+        }).then(res => {
+          let root = res.data;
+          if (root.code === 200) {
+            var alls = root.datas;
+
+            if (undefined == alls || 0 == alls.length) {
+              return;
+            }
+            var needs = [];
+            for (var x = 0; x < alls.length; x++) {
+              var node = alls[x];
+              console.log(JSON.stringify(node));
+              if (0 === node.pid || null === node.pid) {
+                node.children = this.findChilds(node.id, alls);
+                node._showChildren = true;
+                needs.push(node);
+                // needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+              }
+            }
+            this.datas = needs;
+            this.datas = Object.assign([], needs);
+          } else {
+            this.$Message.error(root.message)
+          }
+        }).catch(err => {
+          this.$Message.error('出现错误，请联系管理员！')
+        })
+      },
+      findChilds(pid, alls) {
+        var needs = [];
+        for (var x = 0; x < alls.length; x++) {
+          var node = alls[x];
+          if (pid == node.pid) {
+            node.children = this.findChilds(node.id, alls);
+            node._showChildren = true;
+            needs.push(node);
+            // needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+          }
+        }
+        return needs;
+      },
+      onBatDelete() {
+        if (0 == this.selectedDatas.length) {
+          this.$Message.warning("未选择数据");
+          return;
+        }
+        var ids = [];
+        for (var item of this.selectedDatas) {
+          ids.push(item.id);
+        }
+
+        instance_axios({
+          method: 'post',
+          url: 'api/sys/org/bat-delete.do',
+          data: {
+            ids: ids
+          }
+        }).then(res => {
+          let data = res.data
+          if (data.code === 200) {
+            this.$Message.success(data.message);
+            this.onInit();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(data.message)
+          }
+        }, err => {
+          this.$Message.error(err + '');
+        })
+      }
+    },
+    created() {
+      this.onInit()
+    },
+    init: function () {
+      // this.$root.fillTab('角色管理', this.router.hash);
+    }
+  })
+</script>

@@ -1,0 +1,195 @@
+<!-- 引用外部样式 -->
+<textarea>
+    <skin_card title="地域管理">
+        <template slot="opes">
+            <a href="javascript:void(0)" @click="onAdd">添加</a>
+            <Divider type="vertical" />
+            <a href="javascript:void(0)" @click="">批量删除</a>
+        </template>
+        <template slot="body">
+            <Table row-key="id" :columns="columns" :data="datas" border @on-selection-change="onSelectionChange" :load-data="onLoad">
+                <template slot-scope="{ row, index }" slot="action">
+                    <Button type="primary" size="small" style="margin-right: 5px" @click="$refs.info.onShow(row.id)">修改</Button>
+                </template>
+                <template slot-scope="{ row, index }" slot="name">
+                    {{row.name}} 【{{row.childnum}}】
+                </template>
+            </Table>
+            <sys_region_info ref="info" @data-change="onInit"></sys_region_info>
+        </template>
+    </skin_card>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define(['region/info'], {
+        data() {
+            return {
+                columns: [
+                    {
+                        type: 'selection',
+                        width: 60,
+                        align: 'center'
+                    },
+                    {
+                        'title': '编号',
+                        'key': 'id',
+                        'width': 80,
+                    },
+                    {
+                        'title': '编码',
+                        'key': 'code',
+                        'width': 180,
+                    },
+                    {
+                        'title': '名称',
+                        'key': 'name',
+                        // slot: 'name',
+                        'tree': true,
+                    },
+                    {
+                        title: '操作',
+                        slot: 'action',
+                        width: 200,
+                        align: 'center',
+                        fixed: 'right'
+                    }
+                ],
+                datas: [
+                ],
+                selectedDatas: []
+            }
+        },
+        methods: {
+            onLoad(item, callback) {
+                console.log(JSON.stringify(item));
+
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/region/childs.do',
+                    data: {
+                        pid: item.id
+                    }
+                }).then(res => {
+                    let data = res.data;
+                    if (data.code === 200) {
+                        var datas = data.datas;
+                        if (undefined == datas || 0 == datas.length) {
+                            callback([]);
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < datas.length; x++) {
+                            var node = datas[x];
+                            if(node.childnum>0)
+                            node.name = node.name+'【'+node.childnum+'】';
+                            if (node.childnum > 0) {
+                                node._loading = false;
+                                node.children = [];
+                            }
+
+                            needs.push(node);
+                        }
+                        callback(needs);
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+
+            },
+            onAdd() {
+                this.$refs.info.onAdd();
+            },
+            onSelectionChange(rows) {
+                this.selectedDatas = rows;
+            },
+            onInit() {
+                this.datas = [];
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/region/childs.do',
+                    data: {
+                    }
+                }).then(res => {
+                    let data = res.data;
+                    if (data.code === 200) {
+                        var alls = data.datas;
+                        if (undefined == alls || 0 == alls.length) {
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            if(node.childnum>0)
+                            node.name = node.name+'【'+node.childnum+'】';
+                            node._loading = false;
+                            node.children = [];
+                            needs.push(node);
+
+                            // if (0 === node.pid || null === node.pid) {
+                            //     node.children = this.findChilds(node.id, alls);
+                            //     node._showChildren = true;
+                            //     needs.push(node);
+                            //     // needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                            // }
+                        }
+
+                        this.datas = Object.assign([], needs);
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        node.children = this.findChilds(node.id, alls);
+                        needs.push(node);
+                        // needs.push({ 'key': node.id + '', 'title': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onBatDelete() {
+                if (0 == this.selectedDatas.length) {
+                    this.$Message.warning("未选择数据");
+                    return;
+                }
+                var ids = [];
+                for (var item of this.selectedDatas) {
+                    ids.push(item.id);
+                }
+
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/org/bat-delete.do',
+                    data: {
+                        ids: ids
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.$Message.success(data.message);
+                        this.onInit();
+                        // this.getRoleListDataHandle()
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }, err => {
+                    this.$Message.error(err + '');
+                })
+            }
+        },
+        created() {
+            this.onInit()
+        },
+        init: function () {
+            // this.$root.fillTab('角色管理', this.router.hash);
+        }
+    })
+</script>

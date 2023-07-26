@@ -1,0 +1,74 @@
+<textarea>
+    <components_design_dataselect :options="apps" @data-change="onChange" :width="200" :source="current.value">
+    </components_design_dataselect>
+</textarea>
+<script>
+
+    Rap.define(['/components/design/dataselect'], {
+        props: {
+        },
+        data: function () {
+            return {
+                apps: [],
+                current: {},
+                map:{}
+            }
+        },
+        created: function () {
+            this.onRefersh()
+        },
+        methods: {
+            onRefersh() {
+                this.map = {};
+                this.apps = [];
+                instance_axios({
+                    method: 'post',
+                    url: 'api/manage/application/all.do',
+                    data: {
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        var datas = root.datas;
+                        this.apps = [];
+                        if (undefined != datas) {
+                            for (var row of datas) {
+                                this.map[row.id+''] = row;
+                                this.apps.push({ label: row.app_title, value: '' + row.id });
+                            }
+                        }
+                        this.apps = Object.assign([], this.apps);
+                        if(this.apps.length>0){
+                            this.current = this.apps[0];
+                            this.onChange(this.current);
+                        }
+                    } else {
+                        this.$Message.error("获取应用列表出错");
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onChange(json) {
+                this.current = json;
+                this.$emit("data-change", this.map[json.value]);
+            }
+        },
+        init: function (query, search) {
+        },
+        watch: {
+            // current: {
+            //     handler(new_val, oldName) {
+            //         for (var item of this.apps) {
+            //             if (item.app_name == this.current) {
+            //                 this.$emit('app-change', item);
+            //                 break;
+            //             }
+            //         }
+            //     },
+            //     immediate: true
+            // }
+        }
+    })
+</script>

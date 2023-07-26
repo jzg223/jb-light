@@ -1,0 +1,166 @@
+<template>
+  <div class="container-fluid" style="padding-bottom: 66px;">
+    <div class="index-pos-box bgw mtb15 radius4">
+      <div class="position f12 c6 pull-left" style="background:none;padding-left:15px">
+        <span class="bind-user c4"><a href="javascript:bt.pub.bind_btname();" class="btlink"
+            style="margin-left: 5px;">181****4508</a></span>
+        <span class="alarm-settings c4">
+          <a href="javascript:alarmSettings();" class="btlink">告警</a>
+        </span>
+        <span class="bind-app c4">
+          <a id="bind-app" href="javascript:setAPP()" class="btlink">APP</a>
+        </span>
+
+        <span id="bt-fuli" class="bt-dashi">
+          <a class="btlink ml5" href="https://www.bt.cn/invite" target="_blank">邀请奖励</a>
+        </span>
+
+        <span class="ico-system ico-centos">系统:</span><span id="info"
+          style="margin-left:10px;">CentOS 7.9.2009 x86_64(Py3.7.9)</span>　　持续运行: <span
+          id="running">7天</span>
+      </div>
+    </div>
+    <div class="col-xs-24 col-sm-24 col-md-24" id="home-recommend" style="position: relative;">
+      <div class="conter-box bgw">
+        <div class="recommend-top radius4 ">
+          <div class="product-buy"><button type="button"
+              onclick="product_recommend.pay_product_sign('ltd',45,'ltd')"><span
+                class="recommend-pay-icon"></span>立即升级</button></div>
+          <div class="product-ico ltd-pay-ico"></div>
+          <div class="product-label">
+            <div class="item">5分钟极速响应</div>
+            <div class="item">15天无理由退款</div>
+            <div class="item">30+款付费插件</div>
+            <div class="item">20+企业版专享功能</div>
+            <div class="item">2张SSL商用证书（年付）</div>
+            <div class="item">1000条免费短信（年付）</div>
+            <div class="item">专享企业服务群（年付）</div>
+          </div>
+        </div>
+      </div>
+      <div class="day-not-display" style="display: none;">近24小时不再显示<span></span></div>
+    </div>
+    <div class="danger-tips">
+      <div class="important-title" id="messageError" style="display: none; margin-top:15px"></div>
+    </div>
+    <div class="server bgw mtb15 radius4">
+      <div class="title c6">
+        <div class="plr20 f15">状态</div>
+      </div>
+      <div class="server-circle">
+        <ul class="row" id="systemInfoList">
+          <li class="rank col-xs-6 col-sm-3 col-md-3 col-lg-2 mtb20 circle-box text-center">
+            <div class="titles">
+              <span>负载状态</span>
+              <a href="https://www.bt.cn/bbs/thread-11402-1-1.html" target="_blank"
+                class="bt-ico-ask" style="cursor: pointer;">?</a>
+            </div>
+            <div id="loadChart" class="chart-li" style="user-select: none;"
+              _echarts_instance_="ec_1689910141670">
+              <div
+                style="position: relative; width: 105px; height: 105px; padding: 0px; margin: 0px; border-width: 0px; cursor: default;">
+                <canvas
+                  style="position: absolute; left: 0px; top: 0px; width: 105px; height: 105px; user-select: none; padding: 0px; margin: 0px; border-width: 0px;"
+                  data-zr-dom-id="zr_0" width="105" height="105"></canvas></div>
+            </div>
+            <div id="load" class="info-status">运行流畅</div>
+          </li>
+          <li class="rank col-xs-6 col-sm-3 col-md-3 col-lg-2 mtb20 circle-box text-center">
+            <div class="titles">CPU使用率</div>
+            <div id="cpuChart" class="chart-li" style="user-select: none;"
+              _echarts_instance_="ec_1689910141671">
+              <div
+                style="position: relative; width: 105px; height: 105px; padding: 0px; margin: 0px; border-width: 0px; cursor: default;">
+                <canvas
+                  style="position: absolute; left: 0px; top: 0px; width: 105px; height: 105px; user-select: none; padding: 0px; margin: 0px; border-width: 0px;"
+                  data-zr-dom-id="zr_0" width="105" height="105"></canvas></div>
+            </div>
+            <div id="cpu" class="info-status">16 核心</div>
+          </li>
+          <li class="rank col-xs-6 col-sm-3 col-md-3 col-lg-2 mtb20 circle-box text-center">
+            <div class="titles">内存使用率</div>
+            <div id="memChart" class="chart-li" style="user-select: none;"
+              _echarts_instance_="ec_1689910141672">
+              <div
+                style="position: relative; width: 105px; height: 105px; padding: 0px; margin: 0px; border-width: 0px;">
+                <canvas
+                  style="position: absolute; left: 0px; top: 0px; width: 105px; height: 105px; user-select: none; padding: 0px; margin: 0px; border-width: 0px;"
+                  data-zr-dom-id="zr_0" width="105" height="105"></canvas></div>
+            </div>
+            <div id="mem" class="info-status">13027 / 31612(MB)</div>
+          </li>
+          <li class="rank col-xs-6 col-sm-3 col-md-3 col-lg-2 mtb20 circle-box text-center">
+            <div id="diskName0" class="diskName" title="/">/</div>
+            <div class="chart-li" id="diskChart0" style="user-select: none;"
+              _echarts_instance_="ec_1689910141668">
+              <div
+                style="position: relative; width: 105px; height: 105px; padding: 0px; margin: 0px; border-width: 0px;">
+                <canvas
+                  style="position: absolute; left: 0px; top: 0px; width: 105px; height: 105px; user-select: none; padding: 0px; margin: 0px; border-width: 0px;"
+                  data-zr-dom-id="zr_0" width="105" height="105"></canvas></div>
+            </div>
+            <div id="disk0">21.48G / 456.32G</div>
+          </li>
+          <li class="rank col-xs-6 col-sm-3 col-md-3 col-lg-2 mtb20 circle-box text-center">
+            <div id="diskName1" class="diskName" title="/home">/home</div>
+            <div class="chart-li" id="diskChart1" style="user-select: none;"
+              _echarts_instance_="ec_1689910141669">
+              <div
+                style="position: relative; width: 105px; height: 105px; padding: 0px; margin: 0px; border-width: 0px; cursor: default;">
+                <canvas
+                  style="position: absolute; left: 0px; top: 0px; width: 105px; height: 105px; user-select: none; padding: 0px; margin: 0px; border-width: 0px;"
+                  data-zr-dom-id="zr_0" width="105" height="105"></canvas></div>
+            </div>
+            <div id="disk1">113.2G / 2772.64G</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="system-info bgw clearfix mtb15 radius4">
+      <div class="title c6">
+        <div class="plr20 f15">概览</div>
+      </div>
+      <div class="system-info-con mtb20">
+        <ul class="clearfix text-center">
+          <li class="sys-li-box col-xs-4 col-sm-4 col-md-4 col-lg-3 radius2">
+            <p class="name f15 c9">网站</p>
+            <div class="val"><a class="btlink" href="/site">0</a></div>
+          </li>
+          <li class="sys-li-box col-xs-4 col-sm-4 col-md-4 col-lg-3 radius2">
+            <p class="name f15 c9">FTP</p>
+            <div class="val"><a class="btlink" href="/ftp">0</a></div>
+          </li>
+          <li class="sys-li-box col-xs-4 col-sm-4 col-md-4 col-lg-3 radius2">
+            <p class="name f15 c9">数据库</p>
+            <div class="val"><a class="btlink" href="/database">2</a></div>
+          </li>
+          <li class="sys-li-box ccol-xs-4 col-sm-4 col-md-4 col-lg-3 radius2">
+            <p class="name f15 c9">安全风险</p>
+            <div class="val"><a class="btlink warning_num" href="javascript:;"
+                onclick="index.reader_warning_view()" style="color: red;">17</a></div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>  
+</template>
+<script>
+  Rap.define([], {
+    mixins: [mixin_common],
+    props: {
+    },
+    data: function () {
+      return {
+      }
+    },
+    mounted() {
+
+    },
+    methods: {
+    },
+    init: function (query, search) {
+    },
+    watch: {
+    }
+  })
+</script>

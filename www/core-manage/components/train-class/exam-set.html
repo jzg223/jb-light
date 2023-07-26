@@ -1,0 +1,229 @@
+<textarea>
+  <div>
+    <Tabs @on-click="onCourseChange" v-model="course_current">
+      <TabPane v-for="item of courses" :name="item.id" :key="item.id" :label="item.name"></TabPane>
+    </Tabs>
+
+    <components_design_table ref="table" v-if="params.courseId" name="train-class-exam-list" :params="params">
+      <template slot="opes">
+        <Button v-if="'2'==auth" type="primary"  @click="$refs.form.onAdd()">添加</Button>
+        <Button v-if="'2'==auth" type="primary"  @click="onFinish">确认</Button>
+      </template>
+      <template slot-scope="{ row, index }" slot="action">
+        <Dropdown transfer="true">
+          <a href="javascript:void(0)">操作<Icon type="ios-arrow-down"></Icon></a>
+          <DropdownMenu slot="list">
+            <DropdownItem v-if="'2'==auth" ><a href="javascript:;" @click="onEdit(row)">编辑</a></DropdownItem>
+            <DropdownItem ><a  href="javascript:;" @click="onBegin(row)">开始</a></DropdownItem>
+            <DropdownItem v-if="'2'==auth && 1==row.status"><a  href="javascript:;" @click="onEnd(row)">停止</a></DropdownItem>
+            <DropdownItem v-if="'2'==auth && 2==row.status"><a href="javascript:;" @click="onShowScores(row)">成绩</a></DropdownItem>
+            <DropdownItem ><a href="javascript:;" @click="onSelect(row)">导入到培训成绩</a></DropdownItem>
+            <DropdownItem ></DropdownItem>
+          </DropdownMenu>
+        </Dropdown>
+      </template>
+    </components_design_table>
+    <components_train-class_exam_info :classId="id" :classInfo="classInfo" v-if="params.tid" @data-change="onRefersh" :tid="params.tid" 
+    ref="form"></components_train-class_exam_info>
+
+    <components_train-class_exam_scores ref="scores"></components_train-class_exam_scores>
+  </div>
+</textarea>
+<script>
+  Rap.define(['/components/design/table', '/components/train-class/exam/info','/components/train-class/exam/scores'], {
+    props: ['id', 'classInfo', 'ope', 'auth', 'status_flow'],
+    mixins: [mixin_course],
+    data: function () {
+      return {
+        params: {},
+        courses: [],
+        course_current: 0,
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    computed: {
+      canWrite() {
+        if ('1' != auth) {
+          return false;
+        }
+      }
+    },
+    methods: {
+      onShowScores(row){
+        this.$refs.scores.onShow(row.examId);
+      },
+      onInit() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-course/all.do',
+          data: {
+            tid: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.courses = root.datas;
+            if (undefined != root.datas && root.datas.length > 0) {
+              this.course_current = root.datas[0].id;
+              this.onCourseChange();
+            }
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onCourseChange() {
+        this.params.tid = this.id;
+        this.params.courseId = this.course_current;
+        this.params = Object.assign({}, this.params);
+      },
+      onEdit(row) {
+        this.$refs.form.onShow(row);
+      },
+      onSelect(row){
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-exam/select.do',
+          data: {
+            id: row.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功执行');
+            this.$emit('data-change', {});
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onBegin(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-exam/begin.do',
+          data: {
+            id: row.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功执行');
+            this.$emit('data-change', {});
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onEnd(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-exam/end.do',
+          data: {
+            id: row.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功执行');
+            this.$emit('data-change', {});
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onFinish() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class/confirm-out-check.do',
+          data: {
+            id: this.id
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功执行');
+            this.$emit('data-change', {});
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onRefersh() {
+        var table = this.$refs.table;
+        if (undefined != table) {
+          table.onRefersh();
+        }
+      },
+      onAgree(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-free/agree.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onDeny(row) {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-free/deny.do',
+          data: {
+            id: row.id,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('确认成功');
+            this.onRefersh();
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+    },
+    init: function (query, search) {
+    },
+    watch: {
+      id: {
+        handler(new_val, oldName) {
+          if (0 != new_val) {
+            this.onInit();
+          }
+        },
+        immediate: true
+      }
+    }
+  })
+</script>
+<style>
+  .course-picture {
+    width: 230px;
+    height: 130px;
+  }
+
+  .sort {
+    padding-top: 50px;
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+</style>

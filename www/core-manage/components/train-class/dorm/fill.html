@@ -1,0 +1,104 @@
+<textarea>
+  <Modal v-model="state_show" title="分班人员维护" width="800">
+    
+    <Transfer
+        :data="datas"
+        :target-keys="targetKeys1"
+        :render-format="render1" @on-change="onChange"
+        ></Transfer>
+        
+    <div slot="footer">
+      <Button type="primary" @click="doSubmit">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+  Rap.define(['/components/design/form'], {
+    props: ['tid'],
+    data: function () {
+      return {
+        datas: [],
+        targetKeys1: [],
+        state_show: false,
+        groupId: 0
+
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      onChange(targetKeys, direction, moveKeys) {
+        this.targetKeys1 = targetKeys;
+        this.targetKeys1 = Object.assign([], this.targetKeys1);
+      },
+      onShow(gid) {
+        this.groupId = gid;
+        this.state_show = true;
+        this.onInit();
+      },
+      onInit() {
+        this.datas = [];
+        this.targetKeys1 = [];
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-group/list-stu.do',
+          data: {
+            tid: this.tid,
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            var datas = root.datas;
+            for (var data of datas) {
+              if (0 == data.groupId || this.groupId == data.groupId) {
+                this.datas.push({
+                  key: data.id,
+                  label: data.xm
+                });
+                if (this.groupId == data.groupId) {
+                  this.targetKeys1.push(data.id);
+                }
+              }
+
+            }
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      getTargetKeys() {
+        // return this.getMockData()
+        //   .filter(() => Math.random() * 2 > 1)
+        //   .map(item => item.key);
+      },
+      render1(item) {
+        return item.label;
+      },
+      doSubmit() {
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/train-class-group/fill.do',
+          data: {
+            ids: this.targetKeys1,
+            uid: this.$store.state.user.uid,
+            tid: this.tid,
+            groupId: this.groupId
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功更新');
+            this.state_show = false;
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+    },
+    init: function (query, search) {
+    }
+  })
+</script>

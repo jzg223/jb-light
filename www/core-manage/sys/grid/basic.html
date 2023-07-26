@@ -1,0 +1,89 @@
+<textarea>
+    <div class="panel panel-default" role="classroom-manage-base">
+      <!-- <div class="panel-heading">基础设置</div> -->
+      <div class="panel-body">
+        <Form ref="info" :model="info" :rules="rules" :label-width="180" >
+          <FormItem label="名称" prop="name">
+            <Input type="text" v-model="info.name" placeholder="" />
+          </FormItem>
+          <FormItem label="标题" prop="title">
+            <Input type="text" v-model="info.title" placeholder="" />
+          </FormItem>
+          
+          <FormItem>
+            <Button type="primary" @click="doSubmit('info')">确认</Button>
+          </FormItem>
+        </Form>
+      </div>
+    </div>
+  </textarea>
+  <script>
+    Rap.define([], {
+      props: ['fid', 'formInfo', 'ope'],
+      data: function () {
+        return {
+          info: {
+          },
+          rules: {
+            name: [
+              { required: true, message: '请输入名称', trigger: 'blur' }
+            ],
+          },
+        }
+      },
+      created: function () {
+        this.onInit();
+      },
+      mounted() {
+      },
+      methods: {
+        doSubmit(name) {
+          var user = this.$store.state.user.uid;
+          this.$refs[name].validate((valid) => {
+            if (valid) {
+              var info = Object.assign({}, this.info);
+              instance_axios({
+                method: 'post',
+                url: 'api/sys/grid/update.do',
+                data: {
+                  info: info,
+                  id: this.fid,
+                }
+              }).then(res => {
+                let root = res.data
+                if (root.code === 200) {
+                  this.$Message.success('成功设置');
+                  this.$emit('data-change', {});
+                  // this.getRoleListDataHandle()
+                } else {
+                  this.$Message.error(root.message)
+                }
+              })
+            }else{
+              this.$Message.warning('部分项为空');
+            }
+          });
+  
+        },
+        onInit() {
+        },
+      },
+      init: function (query, search) {
+      },
+      watch: {
+        formInfo: {
+          handler(new_val, oldName) {
+            if (0 != new_val) {
+              this.info = Object.assign({}, int2str(this.formInfo));
+            }
+          },
+          immediate: true
+        }
+      }
+    })
+  </script>
+  <style>
+    .ivu-form-item {
+      margin-bottom: 10px !important;
+    }
+  </style>

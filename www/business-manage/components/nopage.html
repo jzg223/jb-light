@@ -1,0 +1,33 @@
+<textarea>
+    <!-- 未登录提示长裤 -->
+    <Modal
+        v-model="state_show"
+        title="页面访问" mask-closable="false"
+        @on-ok="ok">
+        <p>所访问页面不存在或已删除</p>
+    </Modal>
+</textarea>
+<script>
+    Rap.define([], {
+        props: {
+        },
+        data: function () {
+            return {
+                state_show:true
+            }
+        },
+        created: function () {
+        },
+        mounted() {
+        },
+        methods: {
+            ok(){
+                window.location.href = 'login.html';
+            }
+        },
+        init: function (query, search) {
+        },
+        watch: {
+        }
+    })
+</script>

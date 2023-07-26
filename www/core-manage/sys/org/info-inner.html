@@ -1,0 +1,145 @@
+<textarea>
+    <!-- 添加角色 -->
+    <Drawer title="机构维护" :closable="true" v-model="state_show" width="500">
+        <Form ref="info" :model="info" :rules="rules" :label-width="80">
+            <FormItem label="机构名称" prop="name">
+                <Input type="text" v-model="info.name" placeholder="请输入机构名称" />
+            </FormItem>
+            <FormItem label="编码" prop="code">
+                <Input type="text" v-model="info.code" placeholder="请输入机构编码" />
+            </FormItem>
+            <FormItem label="上级" prop="pid">
+                <sys_org_select :value="pid" @select-change="onOrgSelect"></sys_org_select>
+            </FormItem>
+            <FormItem>
+                <Button @click="close('info')" style="margin: 0 16px 0 15%">关闭</Button>
+                <Button type="primary" @click="doSubmit('info')">提交</Button>
+                <Poptip v-if="0!=oid" confirm title="确定要删除该机构?" @on-ok="doRemove">
+                    <Button type="error">删除</Button>
+                </Poptip>
+            </FormItem>
+        </Form>
+    </Drawer>
+</textarea>
+<script>
+    Rap.define(['select'], {
+        data() {
+            return {
+                state_show: false,
+                oid: 0,
+                info: {
+                },
+                rules: {
+                    'orgName': [
+                        { required: true, message: '请输入机构名', trigger: 'blur' }
+                    ]
+                },
+                pid: 0 // 父级编号
+            }
+        },
+        methods: {
+            onAdd() {
+                console.log('--------------');
+                this.oid = 0;
+                this.info = {
+                };
+                this.state_show = true;
+            },
+            onOrgSelect(event) {
+                this.info.pid = event;
+            },
+            onShow(oid) {
+                this.oid = oid;
+                this.state_show = true;
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/org/show.do',
+                    data: {
+                        id: oid
+                    }
+                }).then(res => {
+                    console.info(res);
+                    let root = res.data;
+                    if (200 == root.code) {
+                        this.info = root.data;
+                        this.pid = root.data.pid;
+                    } else {
+                        this.$Message.error(res.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('提取角色【' + oid + '】信息失败')
+                });
+            },
+            doRemove() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/org/delete.do',
+                    data: {
+                       id : this.oid
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.$Message.success('删除机构数据成功');
+                        this.$emit('data-change', {});
+                        this.state_show = false;
+                        // this.getRoleListDataHandle()
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                })
+            },
+            doSubmit(name) {
+                this.$refs[name].validate((valid) => {
+                    if (valid) {
+                        if (0 == this.oid) {
+                            instance_axios({
+                                method: 'post',
+                                url: 'api/sys/org/insert.do',
+                                data: {
+                                    info: this.info
+                                }
+                            }).then(res => {
+                                let data = res.data;
+                                if (data.code === 200) {
+                                    this.$Message.success('添加机构数据成功');
+                                    this.$emit('data-change', {});
+                                    this.$root.$emit('org-change',{})
+                                } else {
+                                    this.$Message.error(data.message)
+                                }
+                            })
+                        } else {
+                            instance_axios({
+                                method: 'post',
+                                url: 'api/sys/org/update.do',
+                                data: {
+                                    id: this.oid,
+                                    info: this.info
+                                }
+                            }).then(res => {
+                                let data = res.data
+                                if (data.code === 200) {
+                                    this.$Message.success('修改机构数据成功');
+                                    this.$emit('org-change', {});
+                                    this.$root.$emit('org-change',{})
+                                    // this.getRoleListDataHandle()
+                                } else {
+                                    this.$Message.error(data.message)
+                                }
+                            })
+                        }
+                    } else {
+                        this.$Message.error('校验失败，请重新填写')
+                    }
+                })
+            }
+        },
+        created() {
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

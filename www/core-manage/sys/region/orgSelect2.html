@@ -1,0 +1,66 @@
+<textarea>
+    <!-- 地域下的机构选择 -->
+    <Select v-model="value" style="width:200px" @on-change="onSelect" label-in-value="true">
+        <Option v-for="item in datas" :value="item.id+''" :key="item.id">{{ item.name }}</Option>
+    </Select>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['region', 'source'],
+        data() {
+            return {
+                datas: [],
+                value: ''
+            }
+        },
+        methods: {
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/org/all.do',
+                    data: {
+                        region: this.region
+                    }
+                }).then(res => {
+                    let root = res.data
+                    if (root.code === 200) {
+                        this.datas = root.datas;
+                    } else {
+                        this.$Message.error(root.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            onSelect(json) {
+                if (undefined != json) {
+                    this.$emit("value-change", json.value);
+                    this.$emit("title-change", json.label);
+                } else {
+                    this.$emit("value-change", '');
+                    this.$emit("title-change", '');
+                }
+
+            }
+        },
+        created() {
+        },
+        watch: {
+            region: {
+                handler(new_val, oldName) {
+                    this.onRefersh();
+                },
+                immediate: true
+            },
+            source: {
+                handler(new_val, oldName) {
+                    this.value = this.source;
+                },
+                immediate: true
+            }
+        },
+        init: function () {
+        }
+    })
+
+</script>

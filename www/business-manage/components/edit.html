@@ -1,0 +1,59 @@
+<template>
+  <div>
+    <textarea :id="id">{{source}}</textarea>
+  </div>
+</template>
+<script>
+  Rap.define([], {
+    props: ['height', 'source','fullTool'],
+    data() {
+      return {
+        id: ''
+      }
+    },
+    created() {
+      this.id = '_' + this.uuid();
+    },
+    mounted() {
+      var height = this.height;
+      if (undefined == height || null == height || 0 == height) {
+        height = 150;
+      }
+      if ($('#' + this.id).length > 0) {
+        if(undefined != this.fullTool && 1==this.fullTool){
+          CKEDITOR.replace(this.id, { height: height, width: "100%", toolbar: "Full" });
+        }else{
+          CKEDITOR.replace(this.id, { height: height, width: "100%", toolbar: "Basic" });
+        }
+        
+      }
+
+    },
+    methods: {
+      uuid() {
+        function S4() {
+          return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+        }
+        return (S4() + S4() + S4() + S4() + S4() + S4() + S4() + S4());
+      },
+      S4() {
+        return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+      },
+      take() {
+        return CKEDITOR.instances[this.id].getData();
+      }
+    },
+    watch: {
+      source: {
+        handler(new_val, oldName) {
+          if (undefined != this.source && '' != this.source) {
+            CKEDITOR.instances[this.id].setData(this.source);
+          }else{
+            CKEDITOR.instances[this.id].setData('');
+          }
+        },
+        immediate: false
+      }
+    },
+  });
+</script>

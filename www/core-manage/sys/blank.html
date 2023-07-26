@@ -1,0 +1,120 @@
+<!-- 引用外部样式 -->
+<textarea>
+    <components_card title="">
+        <template slot="opes">
+
+        </template>
+        <template slot="body">
+
+        </template>
+    </components_card>
+</textarea>
+<script>
+    //这里定义组件
+    Rap.define(['/sys/role/roleInfo', '/sys/role/roleAssign', '/components/table'], {
+        data() {
+            return {
+                config: {
+                    url: 'api/sys/role/list.do',
+                },
+                formSearch: {
+                    dm: '',
+                    mc: ''
+                },
+                columns: [
+                    {
+                        type: 'selection',
+                        width: 60,
+                        align: 'center'
+                    },
+                    {
+                        'title': '编号',
+                        'key': 'id',
+                        width: 90,
+                        'sortable': true
+                    },
+                    {
+                        'title': '角色',
+                        'key': 'name',
+                        width: 160,
+                        'sortable': true
+                    }, {
+                        'title': '名称',
+                        'key': 'title',
+                        width: 160,
+                        'sortable': true
+                    }, {
+                        'title': '排序',
+                        'key': 'sorts',
+                        width: 160,
+                        'sortable': true
+                    }, {
+                        'title': '层级',
+                        'key': 'level',
+                        width: 160,
+                    }, {
+                        'title': '备注',
+                        'key': 'remarks',
+                    },
+                    {
+                        title: '操作',
+                        slot: 'action',
+                        width: 150,
+                        align: 'center',
+                        fixed: "right"
+                    }
+                ],
+            }
+        },
+        methods: {
+            onAssign(row) {
+                this.$refs.assign.onShow(row.id, row);
+            },
+            doBatRemove() {
+                //批量删除
+            },
+            onAdd() {
+                this.$refs.info.onAdd();
+            },
+            onEdit(row) {
+                this.$refs.info.onShow(row.id);
+            },
+            onSearch() {
+
+            },
+            onRefersh() {
+                if (undefined != this.$refs.table) {
+                    this.$refs.table.onRefersh();
+                }
+            },
+            onBatRemove() {
+                instance_axios({
+                    method: 'post',
+                    url: 'api/sys/role/bat-remove.do',
+                    data: {
+                        pageNum: this.userPage.current,
+                        pageSize: this.userPage.size,
+                        search: this.formSearch
+                    }
+                }).then(res => {
+                    console.info(res)
+                    let data = res.data
+                    if (data.code === 200) {
+                        this.datas = data.datas
+                        this.userPage.total = data.total
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    console.error(err)
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+        },
+        created() {
+        },
+        init: function () {
+            // this.$root.fillTab('角色管理',this.router.hash);
+        }
+    })
+</script>

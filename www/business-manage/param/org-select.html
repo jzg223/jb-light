@@ -1,0 +1,116 @@
+<textarea>
+    <!-- <div>{{nodes}}</div> -->
+    <!-- 部门选择组件，只能选择一个部门 -->
+    <Cascader :data="nodes" transfer="true" :value="values" @on-change="onSelect" change-on-select></Cascader>
+</textarea>
+<script>
+    Rap.define([], {
+        props: ['value','region'],
+        data() {
+            return {
+                nodes: [],
+                alls: [],
+                state_load: false,
+                values: [],
+                map: {}
+            }
+        },
+        methods: {
+            onRefersh() {
+                instance_axios({
+                    method: 'post',
+                    url: '../api/sys/org/all.do',
+                    data: {
+                        region:this.region
+                    }
+                }).then(res => {
+                    let data = res.data
+                    if (data.code === 200) {
+                        var alls = data.datas
+                        if (undefined == alls || 0 == alls.length) {
+                            this.nodes = [];
+                            this.nodes = Object.assign([],this.nodes);
+                            return;
+                        }
+                        var needs = [];
+                        for (var x = 0; x < alls.length; x++) {
+                            var node = alls[x];
+                            this.map[node.id + ''] = node;
+                            if (0 == node.pid) {
+                                needs.push({ 'value': node.id + '', 'label': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                            }
+                        }
+                        this.nodes = needs;
+                        this.onFill(this.value + '');
+                    } else {
+                        this.$Message.error(data.message)
+                    }
+                }).catch(err => {
+                    this.$Message.error('出现错误，请联系管理员！')
+                })
+            },
+            findChilds(pid, alls) {
+                var needs = [];
+                for (var x = 0; x < alls.length; x++) {
+                    var node = alls[x];
+                    if (pid == node.pid) {
+                        needs.push({ 'value': node.id + '', 'label': node.name, expand: true, 'children': this.findChilds(node.id, alls) });
+                    }
+                }
+                return needs;
+            },
+            onSelect(nodearray, node) {
+                if (nodearray.length > 0) {
+                    this.$emit("select-change", nodearray[nodearray.length - 1]);
+                    this.$emit("select-change1", node[node.length - 1]);
+                } else {
+                    this.$emit("select-change", '0');
+                    this.$emit("select-change1", node[node.length - 1]);
+                }
+
+            },
+            onFill(new_val) {
+                var current = new_val + '';
+                var needs = [];
+                while (true) {
+                    var node = this.map[current];
+                    if (undefined == node) {
+                        break;
+                    }
+                    needs.unshift(current);
+                    if (0 == node.pid || '' == node.pid || null == node.pid) {
+                        break;
+                    }
+                    current = node.pid + '';
+                }
+                this.values = needs;
+                this.values = Object.assign([], this.values);
+                this.state_load = true;
+            }
+        },
+        created() {
+            this.onRefersh();
+        },
+        watch: {
+            value: {
+                handler(new_val, oldName) {
+                    this.onFill(new_val);
+                },
+                immediate: true
+            },
+            region: {
+                handler(new_val, oldName) {
+                    if(undefined!=this.region && ''!=this.region){
+                        this.onRefersh();
+                    }
+                    
+                },
+                immediate: true
+            },
+
+        },
+        init: function () {
+        }
+    })
+
+</script>

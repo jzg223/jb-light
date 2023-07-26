@@ -1,0 +1,119 @@
+<textarea>
+  <Modal v-model="state_show" :title="(0==id)?'创建应用':'编辑应用'" width="800">
+    <Form ref="info" :model="info" :rules="rules" :label-width="100">
+      <Row>
+        <Col span="12"><FormItem label="名称" prop="app_name">
+          <Input type="text" v-model="info.app_name" placeholder="" />
+        </FormItem></Col>
+        <Col span="12"><FormItem label="标题" prop="app_title">
+          <Input type="text" v-model="info.app_title" placeholder="" />
+        </FormItem></Col>
+      </Row>
+      <Row>
+        <Col span="12"><FormItem label="主页地址" prop="app_homeurl">
+          <Input type="text" v-model="info.app_homeurl" placeholder="" />
+        </FormItem></Col>
+        <Col span="12"><FormItem label="排序" prop="app_order">
+          <Input type="text" v-model="info.app_order" placeholder="" />
+        </FormItem></Col>
+      </Row>
+      <Row>
+        <Col span="12"><FormItem label="使用全局角色">
+          <i-switch v-model="info.app_role" :true-value="'1'" :false-value="'0'" />
+        </FormItem></Col>
+        <Col span="12"><FormItem label="图标" prop="app_icon">
+          <Input type="text" v-model="info.app_icon" placeholder="" />
+        </FormItem></Col>
+      </Row>
+      
+      <FormItem label="描述" prop="app_desc">
+        <Input type="textarea" :rows="2" v-model="info.app_desc" placeholder="" />
+      </FormItem>
+      
+    </Form>
+    <div slot="footer">
+      <Button type="primary" @click="doSubmit">提交</Button>
+    </div>
+  </Modal>
+</textarea>
+<script>
+  Rap.define([], {
+    data: function () {
+      return {
+        state_show: false,
+        info: {
+        },
+        rules: {},
+        id: 0
+      }
+    },
+    created: function () {
+    },
+    mounted() {
+    },
+    methods: {
+      doSubmit(name) {
+        var info = Object.assign({}, this.info);
+        delete info._index;
+        delete info._rowKey;
+        delete info.id;
+        if (this.id > 0) {
+          instance_axios({
+            method: 'post',
+            url: 'api/manage/application/update.do',
+            data: {
+              info: info,
+              uid: this.$store.state.user.uid,
+              id: this.id
+            }
+          }).then(res => {
+            let root = res.data
+            if (root.code === 200) {
+              this.$Message.success('成功更新');
+              this.$emit('data-change', {});
+              setTimeout(() => {
+                this.state_show = false;
+              }, 1000);
+              // this.getRoleListDataHandle()
+            } else {
+              this.$Message.error(root.message)
+            }
+          })
+          return;
+        }
+        instance_axios({
+          method: 'post',
+          url: 'api/manage/application/create.do',
+          data: {
+            info: info,
+            uid: this.$store.state.user.uid
+          }
+        }).then(res => {
+          let root = res.data
+          if (root.code === 200) {
+            this.$Message.success('成功创建');
+            this.$emit('data-change', {});
+            setTimeout(() => {
+              this.state_show = false;
+            }, 1000);
+            // this.getRoleListDataHandle()
+          } else {
+            this.$Message.error(root.message)
+          }
+        })
+      },
+      onShow(item) {
+        this.state_show = true;
+        if (undefined != item) {
+          this.info = Object.assign({}, int2str(item));
+          this.id = item.id;
+        } else {
+          this.info = Object.assign({},{});
+          this.id = 0;
+        }
+      }
+    },
+    init: function (query, search) {
+    }
+  })
+</script>

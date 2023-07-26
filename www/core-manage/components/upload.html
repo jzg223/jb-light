@@ -1,0 +1,87 @@
+<textarea>
+    <Upload multiple type="drag" :before-upload="handleBeforeUpload">
+      <div  v-if="''==mideaName" style="padding: 20px 0">
+        <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"></Icon>
+        <p>拖动或点击上传</p>
+      </div>
+      <div v-if="''!=mideaName" style="text-align: start;padding-left: 10px;font-weight: 600;">
+        <!-- <p>拖动或点击上传</p> -->
+        {{mideaName}}
+      </div>
+    </Upload>
+  </textarea>
+  <script>
+    Rap.define([], {
+      props: ['sourceName', 'sourceUri'],
+      data: function () {
+        return {
+          url: '', // 封面
+          fj_url: fj_url, 
+          mideaName: '',
+        }
+      },
+      created() {
+      },
+      methods: {
+        uuid() {
+          function S4() {
+            return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+          }
+          return (S4() + S4() + S4() + S4() + S4() + S4() + S4() + S4());
+        },
+        S4() {
+          return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+        },
+        take() {
+        //   return this.pic;
+          if ('' == this.url) {
+          return {
+            mediaName: this.sourceName,
+            url: this.sourceUri
+            }
+          }
+          return {
+            mediaName: this.mideaName,
+            url: this.url
+          };
+        },
+        handleBeforeUpload(file) {
+  
+          let param = new FormData(); //创建form对象
+          param.append('upload', file, file.name);//通过append向form对象添加数据
+          console.log(param.get('upload')); //FormData私有类对象，访问不到，可以通过get判断值是否传进去
+          let config = {
+            headers: { 'Content-Type': 'multipart/form-data' } //这里是重点，需要和后台沟通好请求头，Content-Type不一定是这个值
+          };
+          console.log('===============');
+          console.log(param);
+          instance_axios.post(fj_url + 'upload', param, config).then(res => {
+            var root = res.data;
+            if (200 == root.code) {
+              this.$Message.success('上传成功');
+              this.url = root.message;
+              this.mideaName = file.name;
+            } else {
+              this.$Message.error('上传失败:' + root.message);
+            }
+            console.log(res)
+          }, err => {
+            this.$Message.error('上传失败:' + err);
+          });
+          return false;
+        },
+      },
+      watch: {
+        source: {
+          handler(new_val, oldName) {
+            if (undefined != this.sourceName && '' != this.sourceName) {
+              this.mideaName = this.sourceName;
+            }else{
+              this.mideaName = '';
+            }
+          },
+          immediate: true
+        }
+      },
+    });
+  </script>

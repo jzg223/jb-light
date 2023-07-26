@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC 
+    "-//SPRING//DTD BEAN//EN" 
+    "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans>
+
+	<bean id="businessDataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		destroy-method="close">
+		<!-- 数据库基本信息配置 -->
+		<property name="url" value="jdbc:mysql://localhost:3306/platform-business?useUnicode=true&amp;characterEncoding=utf8&amp;autoReconnect=true&amp;useSSL=false&amp;serverTimezone=GMT%2B8" />
+		<property name="username" value="root" />
+		<property name="password" value="123456" />
+		<property name="driverClassName" value="com.mysql.cj.jdbc.Driver" />
+	</bean>
+	<bean id="businessJdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource">
+			<ref bean="businessDataSource" />
+		</property>
+	</bean>
+
+	<bean id="businessBaseDAO" class="com.honglian.core.db.mysql.MysqlBaseDAO">
+		<property name="jdbcTemplate">
+			<ref bean="businessJdbcTemplate" />
+		</property>
+	</bean>
+
+	<!-- 事务配置开始 -->
+	<bean id="businessTransManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource">
+			<ref bean="businessDataSource" />
+		</property>
+	</bean>
+
+	<bean id="businessTransTemplate"
+		class="org.springframework.transaction.support.TransactionTemplate">
+		<property name="transactionManager">
+			<ref bean="businessTransManager" />
+		</property>
+	</bean>
+	
+</beans>
